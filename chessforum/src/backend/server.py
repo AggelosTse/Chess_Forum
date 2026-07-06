@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,make_response
 from flask_migrate import Migrate 
 import os 
 from dotenv import load_dotenv
@@ -9,6 +9,7 @@ import bcrypt
 import re
 from sqlalchemy import func
 from flask_cors import CORS
+from functools import wraps
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -30,8 +31,53 @@ migrate = Migrate(app, db) #for database update via code
 
 email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$' #for the email validation
 
+#authentication decorator
+def token_required(f):
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        token = None
 
-@app.route('/login', methods=['POST'])
+        if "Authorization" in request.headers:
+            auth_header = request.headers["Authorization"]
+
+            token = auth_header.split(" ")[1] if " " in auth_header else auth_header
+
+        if not token:
+            return make_response(jsonify({
+                "messagetype": "Error",
+                "message": "A valid token is missing!"
+                }), 401)
+
+        try:
+
+            data = jwt.decode(token, app.config["TOKENKEY"], algorithms=["HS256"])
+
+            username = data["username"]
+            role = data["role"]
+
+        except jwt.ExpiredSignatureError:
+            return make_response(jsonify({
+                "messagetype": "Error",
+                "message": "Token has expired!"
+                }), 401)
+        
+        except jwt.InvalidTokenError:
+            return make_response(jsonify({
+                "messagetype": "Error",
+                "message": "Invalid token!"
+                }), 401)
+        
+        except Exception as e:
+            return make_response(jsonify({
+                "messagetype": "Error",
+                "message": str(e)
+                }), 401)
+
+        return f(username, role, *args, **kwargs)
+    return decorator
+
+
+@app.route('/login', methods=["POST"])
 def handleLogin():
     try:
 
@@ -69,7 +115,9 @@ def handleLogin():
         return jsonify({
             "messagetype": "Success",
             "message": "Logging in",
-            "token": token
+            "token": token,
+            "username": username,
+            "role" : user_role
         }),200
 
     except Exception as error:
@@ -81,7 +129,7 @@ def handleLogin():
             "message": "Internal Server Error"
             }),500
 
-@app.route('/signup', methods=['POST'])
+@app.route('/signup', methods=["POST"])
 def handleSignup():
     try:
 
@@ -172,9 +220,46 @@ def handleSignup():
             "message": "Internal Server Error"
             }),500
     
-@app.route("/createCommunity", methods=['POST'])
-def handleCreateCommunity():
-    pass
+@app.route("/createCommunity", methods=["POST"])
+@token_required
+def handleCreateCommunity(username,role):
+    try:
+
+        data = request.get_json()
+
+        title = data.get("title")
+        description = data.get("description")
+
+        #check if user's community name choise already exists
+        existingCommunity = db.session.execute(db.Select(Subchessits).filter_by(title=title)).scalar_one_or_none()
+
+        if existingCommunity is not None:
+            return jsonify({
+                    "messagetype": "Error",
+                    "message": "Community Name already exists"
+                    }),409   
+        
+        new_community = Subchessits(
+            title = title,
+            description = description
+        )
+
+        db.session.add(new_community)
+        db.session.commit()
+
+        return jsonify({
+            "messagetype": "Success",
+            "message": "Community Created Successfully"
+        }),200
+    
+    except Exception as error:
+        print("createCommunity error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
 
 if __name__ == "__main__":
     with app.app_context():

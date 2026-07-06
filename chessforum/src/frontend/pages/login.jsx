@@ -35,8 +35,8 @@ export function LoginPage() {
         setServerMessage(data.message);
 
         if(response.ok){
-            login(data.token, data.role, data.username);
             console.log(data.token, data.role, data.username);
+            login(data.token, data.role, data.username);
         }
     }
 

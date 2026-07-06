@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "../../auth/AuthContext";
 
 export function CreateCommunity(){
 
@@ -8,6 +9,8 @@ export function CreateCommunity(){
         })
 
     const [serverMessage, setServerMessage] = useState("");
+
+    const {token} = useAuth();
 
     //formdata object changes dinamically
     const handleFormChange = (key, value) => {
@@ -23,6 +26,7 @@ export function CreateCommunity(){
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(dataForm)
 
@@ -33,7 +37,16 @@ export function CreateCommunity(){
     }
 
     return (
-        <form onSubmit={submitButton}>
+        <div>
+            <Fields submitButton={submitButton} handleFormChange={handleFormChange}/>
+            <ServerMessage serverMessage={serverMessage}/>
+        </div>
+    );  
+} 
+
+function Fields({submitButton,handleFormChange}){
+    return(
+    <form onSubmit={submitButton}>
             <input
                 type="text"
                 placeholder="Title"
@@ -46,8 +59,8 @@ export function CreateCommunity(){
             /><br />
             <button type="submit">Create Community</button>
         </form>
-    );  
-} 
+    );
+}
 
 function ServerMessage({serverMessage}){
     return <p>{serverMessage}</p>
