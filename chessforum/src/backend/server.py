@@ -55,10 +55,13 @@ def handleLogin():
                 "message": "Invalid Username or Password" 
             }),401
 
+        user_role = userData.roles.name #getting role name via the "roles" relationship variable
+        
         payload = {
                 "iat": datetime.now(timezone.utc),
                 "exp": datetime.now(timezone.utc) + timedelta(hours=1), #expires in 1 hour
-                "username": username
+                "username": username,
+                "role" : user_role
             }
 
         token = jwt.encode(payload, app.config["TOKENKEY"], algorithm="HS256")
@@ -169,6 +172,9 @@ def handleSignup():
             "message": "Internal Server Error"
             }),500
     
+@app.route("/createCommunity", methods=['POST'])
+def handleCreateCommunity():
+    pass
 
 if __name__ == "__main__":
     with app.app_context():

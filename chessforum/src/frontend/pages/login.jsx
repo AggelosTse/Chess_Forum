@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 export function LoginPage() {
+
+    const {login} = useAuth();
 
     const [dataForm, setDataForm] = useState({
         "username": "",
@@ -29,8 +32,12 @@ export function LoginPage() {
         })
 
         const data = await response.json();
-
         setServerMessage(data.message);
+
+        if(response.ok){
+            login(data.token, data.role, data.username);
+            console.log(data.token, data.role, data.username);
+        }
     }
 
     return (
