@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { useState } from "react";
 import { CommentNode, buildCommentTree} from '../../utils/commentHelper.jsx';
+import { useAuth } from '../../auth/AuthContext.jsx';
 
 export function ShowPost() {
 
@@ -39,7 +40,7 @@ export function ShowPost() {
                 component="article"
                 sx={{
                     width: '300px',
-                    aspectRatio: '1 / 1', // Matches your exact square post layout
+                    aspectRatio: '1 / 1', 
                     border: '1px solid grey',
                     p: 2,
                     display: 'flex',
@@ -54,12 +55,63 @@ export function ShowPost() {
                     Community: {postData.community}
                 </Typography>
             </Box>
+            
+            <AddNewComment post_id={post_id} />
 
             <CommentsDisplay post_id={post_id}/>
 
         </div>
     );
 }
+
+//add new comment, fropm the text field, which means its not a reply to someone
+function AddNewComment({post_id}){
+
+    const [newComment, setNewComment] = useState("");
+
+    const {username,token} = useAuth();
+
+    async function submitButton(e){
+
+        e.preventDefault();
+
+        const response = await fetch("http://localhost:8001/addNewComment", {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    "post_id": post_id,    
+                    "commentText" : newComment,  
+                    "addedFromField": true   //a bool to check if it was a reply or not (since its from add field, its not reply)
+                })
+            })
+    }
+
+    if(!token){
+        return(
+            <p>login to comment</p>
+        );
+    }
+    else{
+
+        return(
+        <form onSubmit={submitButton}>
+            <br/>
+            <input
+                type="text"
+                placeholder="Add new comment"
+                onChange={(e) => setNewComment(e.target.value)}
+            />
+            <button type="submit">Submit</button>
+        </form>
+    );
+    }
+    
+}
+
 
 function CommentsDisplay({post_id}) {
 

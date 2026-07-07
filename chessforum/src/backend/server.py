@@ -335,25 +335,81 @@ def handleGetSpecificPost():
     
 @app.route("/getComments", methods=["GET"])
 def handleGetComments():
+    try:
 
-    post_id = request.args.get("post_id")
+        post_id = request.args.get("post_id")
 
-    #get all comments that are in this specific post
-    comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
+        #get all comments that are in this specific post
+        comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
 
-    if comments is not None:
+        if comments is not None:
 
-        comments_list = []
+            comments_list = []
 
-        for comment in comments:
-            comments_list.append({
-            "id": comment.id,                             
-            "parent_id": comment.parent_id,               
-            "text": comment.text,                         
-            "username": comment.users.username,           
-        })
+            for comment in comments:
+                comments_list.append({
+                "id": comment.id,                             
+                "parent_id": comment.parent_id,               
+                "text": comment.text,                         
+                "username": comment.users.username,           
+            })
+                
+            return jsonify(comments_list),200
+
+    except Exception as error:
+        print("getComments error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
+    
+
+@app.route("/addNewComment", methods=["POST"])
+@token_required
+def handleAddComment(username,role):
+    try:
+
+        data = request.get_json()
+
+        post_id = data.get("post_id")
+        commentText = data.get("commentText")
+        addedFromField = data.get("addedFromField")
+
+        #since comments table is storing user_id, finds it from the username
+        userData = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()
+        user_id = userData.id
+
+        if addedFromField:
+
+            new_comment = Comments(
+                text=commentText,
+                user_id=user_id,
+                parent_id=None,
+                post_id=post_id
+            )
+        
+            db.session.add(new_comment)
+            db.session.commit()
             
-        return jsonify(comments_list),200
+            return jsonify({
+            "messagetype": "Success",
+            "message": "Comment Added Successfully"
+        }),200
+
+        else:
+            pass
+
+
+    except Exception as error:
+        print("addComment error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
 
 if __name__ == "__main__":
     with app.app_context():

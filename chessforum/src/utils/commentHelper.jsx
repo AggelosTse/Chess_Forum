@@ -30,9 +30,9 @@ export function CommentNode({ comment }) {
     return (
         <Box 
             sx={{ 
-                pl: comment.parent_id ? 3 : 0, // Indents nested replies
+                pl: comment.parent_id ? 3 : 0, 
                 mt: 2, 
-                borderLeft: comment.parent_id ? '2px solid #e0e0e0' : 'none' // Creates visual threads
+                borderLeft: comment.parent_id ? '2px solid #e0e0e0' : 'none' 
             }}
         >
             <Box sx={{ p: 1.5, bgcolor: '#f9f9f9', borderRadius: '4px' }}>
