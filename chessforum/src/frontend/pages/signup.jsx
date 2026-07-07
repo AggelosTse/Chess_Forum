@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 export function SignupPage() {
+    
+    const {login} = useAuth();
 
     const [dataForm, setDataForm] = useState({
         "username": "",
@@ -30,6 +33,9 @@ export function SignupPage() {
         })
        const data = await response.json();
        setServerMessage(data.message);
+       if(response.ok){
+            login(data.token, data.role, data.username);
+        }
     }
 
     return (

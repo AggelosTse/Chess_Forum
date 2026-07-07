@@ -231,7 +231,7 @@ def handleCreateCommunity(username,role):
         description = data.get("description")
 
         #check if user's community name choise already exists
-        existingCommunity = db.session.execute(db.Select(Subchessits).filter_by(title=title)).scalar_one_or_none()
+        existingCommunity = db.session.execute(db.select(Subchessits).filter_by(title=title)).scalar_one_or_none()
 
         if existingCommunity is not None:
             return jsonify({
@@ -260,6 +260,100 @@ def handleCreateCommunity(username,role):
             "messagetype": "Error",
             "message": "Internal Server Error"
             }),500
+
+@app.route("/getFeedData", methods=["GET"])
+def handleGetFeedData():
+    try:
+        #grab all posts from every community
+        feed_posts = db.session.execute(db.select(Posts)).scalars().all()
+        
+        posts_dict = {}
+        unique_communities = []
+
+        #return all posts that have unique communities 
+        for post in feed_posts:
+            if post.subchessit_id not in unique_communities:
+
+                unique_communities.append(post.subchessit_id)
+
+                #make the object to return
+                posts_dict[post.id] = {
+                    "title": post.title,
+                    "image": post.image,
+                    "user_id": post.user_id,
+                    "community_id": post.subchessit_id,
+                    "description": post.description
+                }
+           
+        
+        return jsonify(posts_dict),200
+
+    except Exception as error:
+        print("getFeedData error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
+    
+@app.route("/getSpecificPost", methods=["GET"])
+def handleGetSpecificPost():
+    try:
+        post_id = request.args.get("post_id")
+        print("--------------------------------------")
+        print(post_id)
+        #it has user_id and subchessit_id as integers
+        specificPostData = db.session.execute(db.select(Posts).filter_by(id=post_id)).scalar_one_or_none()
+
+        if not specificPostData:
+            return jsonify({
+                    "messagetype": "Error",
+                    "message": "Post Doesnt Exist"
+                    }),404
+        
+        userWhoPosted = specificPostData.users.username #using the "users" relationship object
+
+        communityOfPost = specificPostData.subchessits.title #get the community in which the post is added
+
+        return jsonify({
+            "title": specificPostData.title,
+            "description" : specificPostData.description,
+            "user" : userWhoPosted,
+            "community" : communityOfPost
+        }),200
+    
+
+    except Exception as error:
+        print("getSpecificPost error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
+    
+@app.route("/getComments", methods=["GET"])
+def handleGetComments():
+
+    post_id = request.args.get("post_id")
+
+    #get all comments that are in this specific post
+    comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
+
+    if comments is not None:
+
+        comments_list = []
+
+        for comment in comments:
+            comments_list.append({
+            "id": comment.id,                             
+            "parent_id": comment.parent_id,               
+            "text": comment.text,                         
+            "username": comment.users.username,           
+        })
+            
+        return jsonify(comments_list),200
 
 if __name__ == "__main__":
     with app.app_context():

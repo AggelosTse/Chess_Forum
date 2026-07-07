@@ -37,7 +37,8 @@ class Posts(db.Model):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100),nullable=False)
-    image: Mapped[str] = mapped_column(String(150),nullable=False)
+    image: Mapped[str] = mapped_column(String(150))
+    description: Mapped[str] = mapped_column(Text, nullable=False)
     
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"),nullable=False)
     subchessit_id: Mapped[int] = mapped_column(ForeignKey("subchessit.id", ondelete="CASCADE"), nullable=False)

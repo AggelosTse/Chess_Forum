@@ -9,7 +9,7 @@ import { LandingPage } from './frontend/pages/landingpage.jsx'
 import { LoginPage } from './frontend/pages/login.jsx';
 import { SignupPage } from './frontend/pages/signup.jsx';
 import { CreateCommunity } from './frontend/pages/createCommunity.jsx';
-
+import { ShowPost } from './frontend/pages/showSpecificPost.jsx';
 
 function App() {
   return (
@@ -20,6 +20,7 @@ function App() {
         <Route path="/" element = {< LandingPage/>}/> 
         <Route path="/login" element = {< LoginPage/>}/> 
         <Route path="/signup" element = {< SignupPage/>}/> 
+        <Route path="/showSpecificPost" element = {< ShowPost/>}/> 
 
         <Route element={<ProtectedRoute />}>
           <Route path="/createCommunity" element= {<CreateCommunity/>}/>

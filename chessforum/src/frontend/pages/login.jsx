@@ -35,7 +35,6 @@ export function LoginPage() {
         setServerMessage(data.message);
 
         if(response.ok){
-            console.log(data.token, data.role, data.username);
             login(data.token, data.role, data.username);
         }
     }
