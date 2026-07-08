@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { useEffect, useState } from "react";
-
-import { Box, Typography } from '@mui/material';
+import { Box, Typography,Button } from '@mui/material';
 
 
 export function LandingPage() {
@@ -16,7 +15,7 @@ export function LandingPage() {
       <LoginButton navigate={navig} />
       <SignupButton navigate={navig} />
       <CreateCommunity navigate={navig} token={token} />
-      <FeedData navig={navig}/>
+      <DisplayPosts navig={navig} />
     </div>
   );
 }
@@ -37,7 +36,8 @@ function CreateCommunity({ navigate, token }) {
 
 }
 
-function FeedData({navig}) {
+//posts from all communities
+function DisplayPosts({ navig }) {
 
   const [postsList, setPostsList] = useState({});
 
@@ -47,7 +47,7 @@ function FeedData({navig}) {
 
   async function fetchPosts() {
 
-    const response = await fetch('http://localhost:8001/getFeedData', {
+    const response = await fetch('http://localhost:8001/getPostsData', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -60,12 +60,11 @@ function FeedData({navig}) {
     setPostsList(data);
   }
 
-  //every container is a box with the post
   return (
     <Box sx={{
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',   
+      alignItems: 'center',
       gap: 3,
       flexWrap: 'wrap',
       p: 2
@@ -76,24 +75,49 @@ function FeedData({navig}) {
         return (
           <Box
             key={post_id}
-            component="button"
+            component="div"
             onClick={() => navig("/showSpecificPost", { state: { post_id: post_id } })}
             sx={{
               width: '300px',
-              aspectRatio: '1 / 1', 
+              aspectRatio: '1 / 1',
               border: '1px dashed grey',
               p: 2,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              cursor: 'pointer', // make whole box look clickable
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.02)' //hover effect
+              }
             }}
           >
             <Typography variant="h6">{post.title}</Typography>
             <Typography variant="body2">{post.description}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Community: {post.community_id}
-            </Typography>
+
+            {/*community button */}
+            <Button
+              size="small"
+              variant="text"
+              onClick={(e) => {
+                e.stopPropagation(); 
+                console.log(post.community_id , post.community_name);
+                navig("/showSpecificCommunity", { state: { community_id: post.community_id } } );
+              }}
+              sx={{
+                textTransform: 'none',   
+                padding: 0,             
+                minWidth: 'auto',
+                alignSelf: 'flex-start', 
+                fontSize: '0.75rem',     
+                color: 'text.secondary',
+                '&:hover': {
+                  textDecoration: 'underline'
+                }
+              }}
+            >
+              Community: {post.community_name}
+            </Button>
           </Box>
         );
       })}

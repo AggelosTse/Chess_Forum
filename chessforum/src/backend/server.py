@@ -261,7 +261,7 @@ def handleCreateCommunity(username,role):
             "message": "Internal Server Error"
             }),500
 
-@app.route("/getFeedData", methods=["GET"])
+@app.route("/getPostsData", methods=["GET"])
 def handleGetFeedData():
     try:
         #grab all posts from every community
@@ -276,12 +276,15 @@ def handleGetFeedData():
 
                 unique_communities.append(post.subchessit_id)
 
+                community_name = post.subchessits.title #grab community name by "subchessit" relationship object
+
                 #make the object to return
                 posts_dict[post.id] = {
                     "title": post.title,
                     "image": post.image,
                     "user_id": post.user_id,
                     "community_id": post.subchessit_id,
+                    "community_name": community_name,  #keep community name to display in frontend
                     "description": post.description
                 }
            
@@ -301,8 +304,7 @@ def handleGetFeedData():
 def handleGetSpecificPost():
     try:
         post_id = request.args.get("post_id")
-        print("--------------------------------------")
-        print(post_id)
+
         #it has user_id and subchessit_id as integers
         specificPostData = db.session.execute(db.select(Posts).filter_by(id=post_id)).scalar_one_or_none()
 
@@ -372,35 +374,33 @@ def handleAddComment(username,role):
     try:
 
         data = request.get_json()
-
         post_id = data.get("post_id")
         commentText = data.get("commentText")
         addedFromField = data.get("addedFromField")
 
+        if addedFromField: parent_id = None
+        else: parent_id = data.get("parent_id")
+
+         
         #since comments table is storing user_id, finds it from the username
         userData = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()
         user_id = userData.id
 
-        if addedFromField:
-
-            new_comment = Comments(
-                text=commentText,
-                user_id=user_id,
-                parent_id=None,
-                post_id=post_id
-            )
+        new_comment = Comments(
+            text=commentText,
+            user_id=user_id,
+            parent_id=parent_id,
+            post_id=post_id
+        )
+    
+        db.session.add(new_comment)
+        db.session.commit()
         
-            db.session.add(new_comment)
-            db.session.commit()
-            
-            return jsonify({
-            "messagetype": "Success",
-            "message": "Comment Added Successfully"
+        return jsonify({
+        "messagetype": "Success",
+        "message": "Comment Added Successfully"
         }),200
-
-        else:
-            pass
-
+    
 
     except Exception as error:
         print("addComment error")
@@ -410,6 +410,12 @@ def handleAddComment(username,role):
             "messagetype": "Error",
             "message": "Internal Server Error"
             }),500
+
+@app.route("/getSpecificCommunityPosts", methods=["GET"])
+def handleGetCommunity():
+
+     pass
+
 
 if __name__ == "__main__":
     with app.app_context():

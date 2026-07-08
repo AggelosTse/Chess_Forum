@@ -2,7 +2,7 @@ import { Box, Typography } from '@mui/material';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router';
 import { useState } from "react";
-import { CommentNode, buildCommentTree} from '../../utils/commentHelper.jsx';
+import { CommentNode, buildCommentTree} from '../../utils/commentTreeFormat.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 
 export function ShowPost() {
@@ -117,6 +117,8 @@ function CommentsDisplay({post_id}) {
 
     const [commentsList, setCommentsList] = useState({});
 
+    const [commentTrigger, setCommentTrigger] = useState(0);   
+
     useEffect(()=>{
 
         async function fetchComments(){
@@ -141,7 +143,7 @@ function CommentsDisplay({post_id}) {
         }
     },[post_id]);
 
-    const commentTree = buildCommentTree(commentsList);
+    const commentTree = buildCommentTree(commentsList); //returns a tree with the nested comments
 
     return (
         <Box sx={{ mt: 4, p: 2, borderTop: '1px solid #ddd' }}>
@@ -154,7 +156,8 @@ function CommentsDisplay({post_id}) {
             ) : (
                 // Only loop over root comments here, nested ones are handled automatically by recursion
                 commentTree.map((rootComment) => (
-                    <CommentNode key={rootComment.id} comment={rootComment} />
+                    <CommentNode key={rootComment.id} post_id={post_id} comment={rootComment} setCommentTrigger={setCommentTrigger}/>
+                    
                 ))
             )}
         </Box>

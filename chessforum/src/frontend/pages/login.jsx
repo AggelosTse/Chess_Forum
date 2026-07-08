@@ -12,6 +12,8 @@ export function LoginPage() {
     })
     const [serverMessage, setServerMessage] = useState("");
 
+    const navig = useNavigate();
+
     //formdata object changes dinamically
     const handleFormChange = (key, value) => {
         setDataForm((prev) => ({ ...prev, [key]: value }));
@@ -32,11 +34,15 @@ export function LoginPage() {
         })
 
         const data = await response.json();
-        setServerMessage(data.message);
-
+        
         if(response.ok){
             login(data.token, data.role, data.username);
+
+            setTimeout(() => {
+                navig("/");
+            }, 800);
         }
+        setServerMessage(data.message);
     }
 
     return (

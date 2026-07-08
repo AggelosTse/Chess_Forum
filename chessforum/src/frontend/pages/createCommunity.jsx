@@ -1,23 +1,26 @@
 import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import Swal from 'sweetalert2';
 
-export function CreateCommunity(){
+export function CreateCommunity() {
 
     const [dataForm, setDataForm] = useState({
-            "title": "",
-            "description": ""
-        })
+        "title": "",
+        "description": ""
+    })
 
     const [serverMessage, setServerMessage] = useState("");
 
-    const {token} = useAuth();
+    const { token } = useAuth();
 
     //formdata object changes dinamically
     const handleFormChange = (key, value) => {
         setDataForm((prev) => ({ ...prev, [key]: value }));
     };
 
-    async function submitButton(e){
+    async function submitButton(e) {
+
+        setServerMessage("");
 
         e.preventDefault(); //dont reload page when submit is clicked (since form is used)
 
@@ -31,22 +34,45 @@ export function CreateCommunity(){
             body: JSON.stringify(dataForm)
 
         })
+
         const data = await response.json();
-        setServerMessage(data.message);
+
+        if (response.ok) {
+            Swal.fire({
+                title: 'Success!',
+                text: `${data.message}`,
+                icon: 'success',
+                confirmButtonText: 'Awesome',
+                confirmButtonColor: '#3085d6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+
+                    setDataForm({
+                        "title": "",
+                        "description": ""
+                    })
+
+                }
+            });
+        }
+        else {
+            setServerMessage(data.message);
+        }
+
 
     }
 
     return (
         <div>
-            <Fields submitButton={submitButton} handleFormChange={handleFormChange}/>
-            <ServerMessage serverMessage={serverMessage}/>
+            <Fields submitButton={submitButton} handleFormChange={handleFormChange} />
+            <ServerMessage serverMessage={serverMessage} />
         </div>
-    );  
-} 
+    );
+}
 
-function Fields({submitButton,handleFormChange}){
-    return(
-    <form onSubmit={submitButton}>
+function Fields({ submitButton, handleFormChange }) {
+    return (
+        <form onSubmit={submitButton}>
             <input
                 type="text"
                 placeholder="Title"
@@ -62,6 +88,6 @@ function Fields({submitButton,handleFormChange}){
     );
 }
 
-function ServerMessage({serverMessage}){
+function ServerMessage({ serverMessage }) {
     return <p>{serverMessage}</p>
 }

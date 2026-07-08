@@ -10,6 +10,8 @@ import { LoginPage } from './frontend/pages/login.jsx';
 import { SignupPage } from './frontend/pages/signup.jsx';
 import { CreateCommunity } from './frontend/pages/createCommunity.jsx';
 import { ShowPost } from './frontend/pages/showSpecificPost.jsx';
+import { ShowCommunity } from './frontend/pages/showSpecificCommunity.jsx';
+
 
 function App() {
   return (
@@ -21,6 +23,7 @@ function App() {
         <Route path="/login" element = {< LoginPage/>}/> 
         <Route path="/signup" element = {< SignupPage/>}/> 
         <Route path="/showSpecificPost" element = {< ShowPost/>}/> 
+        <Route path="/showSpecificCommunity" element = {< ShowCommunity/>}/> 
 
         <Route element={<ProtectedRoute />}>
           <Route path="/createCommunity" element= {<CreateCommunity/>}/>

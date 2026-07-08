@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import { useNavigate } from "react-router-dom";
 
 export function SignupPage() {
     
@@ -12,6 +13,8 @@ export function SignupPage() {
     })
 
     const [serverMessage, setServerMessage] = useState("");
+
+    const navig = useNavigate();
 
     //formdata object changes dinamically
     const handleFormChange = (key, value) => {
@@ -35,6 +38,10 @@ export function SignupPage() {
        setServerMessage(data.message);
        if(response.ok){
             login(data.token, data.role, data.username);
+
+            setTimeout(() => {
+                navig("/");
+            }, 800);
         }
     }
 
