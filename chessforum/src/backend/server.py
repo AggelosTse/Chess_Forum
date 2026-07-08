@@ -278,11 +278,14 @@ def handleGetFeedData():
 
                 community_name = post.subchessits.title #grab community name by "subchessit" relationship object
 
+                userWhoPosted = post.users.username
+
                 #make the object to return
                 posts_dict[post.id] = {
                     "title": post.title,
                     "image": post.image,
                     "user_id": post.user_id,
+                    "userWhoPosted" : userWhoPosted,
                     "community_id": post.subchessit_id,
                     "community_name": community_name,  #keep community name to display in frontend
                     "description": post.description
@@ -292,7 +295,7 @@ def handleGetFeedData():
         return jsonify(posts_dict),200
 
     except Exception as error:
-        print("getFeedData error")
+        print("getPostsData error")
         print(str(error))
 
         return jsonify({
@@ -321,7 +324,7 @@ def handleGetSpecificPost():
         return jsonify({
             "title": specificPostData.title,
             "description" : specificPostData.description,
-            "user" : userWhoPosted,
+            "userWhoPosted" : userWhoPosted,
             "community" : communityOfPost
         }),200
     
@@ -353,7 +356,7 @@ def handleGetComments():
                 "id": comment.id,                             
                 "parent_id": comment.parent_id,               
                 "text": comment.text,                         
-                "username": comment.users.username,           
+                "username": comment.users.username     
             })
                 
             return jsonify(comments_list),200
@@ -414,7 +417,49 @@ def handleAddComment(username,role):
 @app.route("/getSpecificCommunityPosts", methods=["GET"])
 def handleGetCommunity():
 
-     pass
+    community_id = request.args.get("community_id")
+
+    try:
+        #grab current community 
+        current_community= db.session.get(Subchessits, community_id)
+
+        if not current_community:
+            return jsonify({
+                "messagetype": "Error", 
+                "message": "Community not found"
+                }), 404
+        
+        #grab all posts from the selected community
+        community_posts = db.session.execute(db.select(Posts).filter_by(subchessit_id = community_id)).scalars().all()
+        
+        #grab its name
+        community_name = current_community.title
+
+        posts_dict = {}
+        for community_post in community_posts:
+
+            userWhoPosted = community_post.users.username #using the "users" relationship object
+
+            #make the object to return
+            posts_dict[community_post.id] = {
+                "title": community_post.title,
+                "image": community_post.image,
+                "user_id": community_post.user_id,
+                "userWhoPosted" : userWhoPosted,
+                "community_name": community_name,  #keep community name to display in frontend
+                "description": community_post.description
+            }
+        
+        return jsonify(posts_dict),200
+
+    except Exception as error:
+        print("getSpecificCommunityPosts error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
 
 
 if __name__ == "__main__":

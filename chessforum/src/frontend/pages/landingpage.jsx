@@ -94,6 +94,7 @@ function DisplayPosts({ navig }) {
           >
             <Typography variant="h6">{post.title}</Typography>
             <Typography variant="body2">{post.description}</Typography>
+            <Typography variant="body2">{post.userWhoPosted}</Typography>
 
             {/*community button */}
             <Button
@@ -101,7 +102,6 @@ function DisplayPosts({ navig }) {
               variant="text"
               onClick={(e) => {
                 e.stopPropagation(); 
-                console.log(post.community_id , post.community_name);
                 navig("/showSpecificCommunity", { state: { community_id: post.community_id } } );
               }}
               sx={{

@@ -51,6 +51,7 @@ export function ShowPost() {
             >
                 <Typography variant="h6">{postData.title}</Typography>
                 <Typography variant="body2">{postData.description}</Typography>
+                <Typography variant="body2">{postData.userWhoPosted}</Typography>
                 <Typography variant="caption" color="text.secondary">
                     Community: {postData.community}
                 </Typography>
