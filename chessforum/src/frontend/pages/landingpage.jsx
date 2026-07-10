@@ -1,11 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { useEffect, useState } from "react";
-import { Box, Typography,Button } from '@mui/material';
-
+import { Box, Typography, Button } from "@mui/material";
+import { ChatBubbleOutlineOutlined as ChatBubbleOutlineIcon } from "@mui/icons-material";
 
 export function LandingPage() {
-
   const navig = useNavigate();
 
   const { token } = useAuth();
@@ -20,25 +19,24 @@ export function LandingPage() {
   );
 }
 
-
-
-
 function LoginButton({ navigate }) {
-  return <button onClick={() => navigate("/login")} >Login</button>
+  return <button onClick={() => navigate("/login")}>Login</button>;
 }
 
 function SignupButton({ navigate }) {
-  return <button onClick={() => navigate("/signup")} >Signup</button>
+  return <button onClick={() => navigate("/signup")}>Signup</button>;
 }
 
 function CreateCommunity({ navigate, token }) {
-  return token ? (< button onClick={() => navigate("/createCommunity")} >Create Community</button>) : null
-
+  return token ? (
+    <button onClick={() => navigate("/createCommunity")}>
+      Create Community
+    </button>
+  ) : null;
 }
 
 //posts from all communities
 function DisplayPosts({ navig }) {
-
   const [postsList, setPostsList] = useState({});
 
   useEffect(() => {
@@ -46,14 +44,13 @@ function DisplayPosts({ navig }) {
   }, []);
 
   async function fetchPosts() {
-
-    const response = await fetch('http://localhost:8001/getPostsData', {
-      method: 'GET',
+    const response = await fetch("http://localhost:8001/getPostsData", {
+      method: "GET",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    })
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+    });
 
     const data = await response.json();
 
@@ -61,14 +58,16 @@ function DisplayPosts({ navig }) {
   }
 
   return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: 3,
-      flexWrap: 'wrap',
-      p: 2
-    }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 3,
+        flexWrap: "wrap",
+        p: 2,
+      }}
+    >
       {Object.keys(postsList).map((post_id) => {
         const post = postsList[post_id];
 
@@ -76,20 +75,22 @@ function DisplayPosts({ navig }) {
           <Box
             key={post_id}
             component="div"
-            onClick={() => navig("/showSpecificPost", { state: { post_id: post_id } })}
+            onClick={() =>
+              navig("/showSpecificPost", { state: { post_id: post_id } })
+            }
             sx={{
-              width: '300px',
-              aspectRatio: '1 / 1',
-              border: '1px dashed grey',
+              width: "300px",
+              aspectRatio: "1 / 1",
+              border: "1px dashed grey",
               p: 2,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxSizing: 'border-box',
-              cursor: 'pointer', // make whole box look clickable
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.02)' //hover effect
-              }
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              boxSizing: "border-box",
+              cursor: "pointer", // make whole box look clickable
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.02)", //hover effect
+              },
             }}
           >
             <Typography variant="h6">{post.title}</Typography>
@@ -101,22 +102,51 @@ function DisplayPosts({ navig }) {
               size="small"
               variant="text"
               onClick={(e) => {
-                e.stopPropagation(); 
-                navig("/showSpecificCommunity", { state: { community_id: post.community_id } } );
+                e.stopPropagation();
+                navig("/showSpecificCommunity", {
+                  state: { community_id: post.community_id },
+                });
               }}
               sx={{
-                textTransform: 'none',   
-                padding: 0,             
-                minWidth: 'auto',
-                alignSelf: 'flex-start', 
-                fontSize: '0.75rem',     
-                color: 'text.secondary',
-                '&:hover': {
-                  textDecoration: 'underline'
-                }
+                textTransform: "none",
+                padding: 0,
+                minWidth: "auto",
+                alignSelf: "flex-start",
+                fontSize: "0.75rem",
+                color: "text.secondary",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
               }}
             >
               Community: {post.community_name}
+            </Button>
+
+            {/* comments button */}
+            <Button
+              size="small"
+              variant="text"
+              startIcon={
+                <ChatBubbleOutlineIcon sx={{ fontSize: "1rem !important" }} />
+              } 
+              onClick={(e) => {
+                e.stopPropagation();
+                navig("/showSpecificPost", {
+                  state: { post_id: post_id},
+                });
+              }}
+              sx={{
+                textTransform: "none",
+                padding: 0,
+                minWidth: "auto",
+                fontSize: "0.75rem",
+                color: "text.secondary",
+                "&:hover": {
+                  textDecoration: "underline",
+                },
+              }}
+            >
+             Comments   
             </Button>
           </Box>
         );

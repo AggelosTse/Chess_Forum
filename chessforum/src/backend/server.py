@@ -200,7 +200,8 @@ def handleSignup():
         payload = {
                     "iat": datetime.now(timezone.utc),
                     "exp": datetime.now(timezone.utc) + timedelta(hours=1), #expires in 1 hour
-                    "username": username
+                    "username": username,
+                    "role" : role_object.name
                 }
 
         token = jwt.encode(payload, app.config["TOKENKEY"], algorithm="HS256")
@@ -208,7 +209,9 @@ def handleSignup():
         return jsonify({
             "messagetype": "Success",
             "message": "Signing Up",
-            "token": token
+            "token": token,
+            "username": username,
+            "role" : role_object.name
         }),200
 
     except Exception as error:
@@ -325,7 +328,8 @@ def handleGetSpecificPost():
             "title": specificPostData.title,
             "description" : specificPostData.description,
             "userWhoPosted" : userWhoPosted,
-            "community" : communityOfPost
+            "community" : communityOfPost,
+            "community_id" : specificPostData.subchessit_id
         }),200
     
 

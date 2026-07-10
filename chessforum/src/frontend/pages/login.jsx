@@ -37,7 +37,6 @@ export function LoginPage() {
         
         if(response.ok){
             login(data.token, data.role, data.username);
-
             setTimeout(() => {
                 navig("/");
             }, 800);
