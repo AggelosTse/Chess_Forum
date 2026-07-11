@@ -2,7 +2,8 @@ import { Box, Typography, Button } from "@mui/material";
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { useState } from "react";
-import {CommentNode,buildCommentTree} from "../../utils/commentTreeFormat.jsx";
+import { CommentNode } from "../components/commentNode.jsx";
+import { buildCommentTree } from "../../utils/commentHelper.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { useNavigate } from "react-router";
 
@@ -13,7 +14,7 @@ export function ShowPost() {
   const post_id = location.state?.post_id;
 
   const navig = useNavigate();
-  
+
   useEffect(() => {
     async function fetchSpecificPost() {
       const response = await fetch(

@@ -3,72 +3,71 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 
 export function LoginPage() {
+  const { login } = useAuth();
 
-    const {login} = useAuth();
+  const [dataForm, setDataForm] = useState({
+    username: "",
+    password: "",
+  });
+  const [serverMessage, setServerMessage] = useState("");
 
-    const [dataForm, setDataForm] = useState({
-        "username": "",
-        "password": ""
-    })
-    const [serverMessage, setServerMessage] = useState("");
+  const navig = useNavigate();
 
-    const navig = useNavigate();
+  //formdata object changes dinamically
+  const handleFormChange = (key, value) => {
+    setDataForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-    //formdata object changes dinamically
-    const handleFormChange = (key, value) => {
-        setDataForm((prev) => ({ ...prev, [key]: value }));
-    };
+  async function submitButton(e) {
+    e.preventDefault(); //dont reload page when submit is clicked (since form is used)
 
-    async function submitButton(e) {
+    const response = await fetch("http://localhost:8001/login", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(dataForm),
+    });
 
-        e.preventDefault(); //dont reload page when submit is clicked (since form is used)
+    const data = await response.json();
 
-        const response = await fetch('http://localhost:8001/login', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(dataForm)
-
-        })
-
-        const data = await response.json();
-        
-        if(response.ok){
-            login(data.token, data.role, data.username);
-            setTimeout(() => {
-                navig("/");
-            }, 800);
-        }
-        setServerMessage(data.message);
+    if (response.ok) {
+      login(data.token, data.role, data.username);
+      setTimeout(() => {
+        navig("/");
+      }, 800);
     }
+    setServerMessage(data.message);
+  }
 
-    return (
-        <div>
-            <Fields handleFormChange={handleFormChange} submitButton={submitButton} />
-            <SignUpText />
-            <ServerMessage serverMessage={serverMessage}/>
-        </div>
-    );
+  return (
+    <div>
+      <Fields handleFormChange={handleFormChange} submitButton={submitButton} />
+      <SignUpText />
+      <ServerMessage serverMessage={serverMessage} />
+    </div>
+  );
 }
 
 function Fields({ handleFormChange, submitButton }) {
-    return (
-        <form onSubmit={submitButton}>
-            <input
-                type="text"
-                placeholder="Username"
-                onChange={(e) => handleFormChange("username", e.target.value)}
-            /><br />
-            <input
-                type="password"
-                placeholder="Password"
-                onChange={(e) => handleFormChange("password", e.target.value)}
-            /><br />
-            <button type="submit">Login</button>
-        </form>
-    );
+  return (
+    <form onSubmit={submitButton}>
+      <input
+        type="text"
+        placeholder="Username"
+        onChange={(e) => handleFormChange("username", e.target.value)}
+      />
+      <br />
+      <input
+        type="password"
+        placeholder="Password"
+        onChange={(e) => handleFormChange("password", e.target.value)}
+      />
+      <br />
+      <button type="submit">Login</button>
+    </form>
+  );
 }
 
 //sign up button if user doesnt have an account
@@ -76,13 +75,15 @@ function SignUpText() {
   return (
     <div>
       <p>
-          <span style={{ color: "gray", cursor: "not-allowed" }}>Dont have an account?</span>
-          <Link to="/signup">Sign up</Link>
+        <span style={{ color: "gray", cursor: "not-allowed" }}>
+          Dont have an account?
+        </span>
+        <Link to="/signup">Sign up</Link>
       </p>
     </div>
   );
 }
 
-function ServerMessage({serverMessage}){
-    return <p>{serverMessage}</p>
+function ServerMessage({ serverMessage }) {
+  return <p>{serverMessage}</p>;
 }

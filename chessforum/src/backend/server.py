@@ -78,11 +78,17 @@ def token_required(f):
 
 
 @app.route('/login', methods=["POST"])
-def handleLogin():
+def handle_login():
     try:
 
         data = request.get_json()
         
+        if data is None:
+            return jsonify({
+                "messagetype": "Error",
+                "message": "Invalid or missing JSON payload"
+            }), 400
+            
         username = data.get("username")
         password = data.get("password")
         
@@ -95,31 +101,37 @@ def handleLogin():
         userData = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()    
             
         #check if input password matches the stored one
-        if not userData or not bcrypt.checkpw(password.encode('utf-8'), userData.password.encode('utf-8')):
-            return jsonify({
-                "messagetype": "Error",
-                "message": "Invalid Username or Password" 
-            }),401
+        if userData:
+            if bcrypt.checkpw(password.encode('utf-8'), userData.password.encode('utf-8')):
 
-        user_role = userData.roles.name #getting role name via the "roles" relationship variable
-        
-        payload = {
-                "iat": datetime.now(timezone.utc),
-                "exp": datetime.now(timezone.utc) + timedelta(hours=1), #expires in 1 hour
-                "username": username,
-                "role" : user_role
-            }
+                if userData.roles:
+                    user_role = userData.roles.name #getting role name via the "roles" relationship variable
+                else:
+                    user_role = "user"
+                    
+                now = int(datetime.now(timezone.utc).timestamp()) #get current time in timestamp format
+                payload = {
+                        "iat": now,
+                        "exp": now + 1200, #expires in 20 minutes
+                        "username": username,
+                        "role" : user_role
+                    }
 
-        token = jwt.encode(payload, app.config["TOKENKEY"], algorithm="HS256")
+                token = jwt.encode(payload, app.config["TOKENKEY"], algorithm="HS256")
 
+                return jsonify({
+                    "messagetype": "Success",
+                    "message": "Logging in",
+                    "token": token,
+                    "username": username,
+                    "role" : user_role
+                }),200        
+                
         return jsonify({
-            "messagetype": "Success",
-            "message": "Logging in",
-            "token": token,
-            "username": username,
-            "role" : user_role
-        }),200
-
+            "messagetype": "Error",
+            "message": "Invalid Username or Password" 
+        }),401
+        
     except Exception as error:
         print("login error")
         print(str(error))
@@ -130,11 +142,17 @@ def handleLogin():
             }),500
 
 @app.route('/signup', methods=["POST"])
-def handleSignup():
+def handle_signup():
     try:
 
         data = request.get_json()
     
+        if data is None:
+            return jsonify({
+                "messagetype": "Error",
+                "message": "Invalid or missing JSON payload"
+            }), 400
+            
         username = data.get("username")
         password = data.get("password")
         email = data.get("email")
@@ -145,10 +163,10 @@ def handleSignup():
                 "message": "Missing Input"
                 }),400
         
-        if len(password) <= 8:
+        if len(password) < 8:
             return jsonify({
                 "messagetype": "Error", 
-                "message": "Password not long enough (>8)"
+                "message": "Password not long enough (>= 8)"
                 }), 422
 
         if not re.match(email_regex, email):
@@ -157,32 +175,43 @@ def handleSignup():
                     "message": "Invalid Email Format"
                     }), 400
         
-        #check if user already exists
-        existingUser = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()  
+        #check if selected username already exists
+        existingUsername = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()  
 
-        if existingUser is not None:
+        #existingUsername is not null, so a user with that username exists
+        if existingUsername:
             return jsonify({
                 "messagetype": "Error",
                 "message": "Account with that name already exists"
                 }),409   
         
+        #check if selected email already exists
+        existingEmail = db.session.execute(db.select(Users).filter_by(email=email)).scalar_one_or_none() 
 
-        emailExists = db.session.execute(db.select(Users).filter_by(email=email)).scalar_one_or_none() 
-
-        if emailExists is not None:
+        #existingEmail is not null, so a user with that email exist
+        if existingEmail:
             return jsonify({
                 "messagetype": "Error",
                 "message": "Email already exists"
                 }),409   
 
-        usersCount = db.session.query(func.count(Users.id)).scalar()
+        #stop if you find the first row, if 1 extsts, no need to check the others
+        any_user_exists = db.session.execute(db.select(Users.id).limit(1)).scalar()
 
-        if usersCount == 0: role_name = "admin"
-        else: role_name = "user"
+        if any_user_exists: 
+            role_name = "user"
+        else: 
+            role_name = "admin"
 
         #find specific role id, to store in user
         role_object = db.session.execute(db.select(Roles).filter_by(name=role_name)).scalar_one_or_none()
         
+        if not role_object:
+            return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Configuration Error"
+            }),500
+            
         #hashing password for safety
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
@@ -191,15 +220,17 @@ def handleSignup():
                     username=username,
                     password= hashed_password,
                     email=email,
-                    role_id=role_object.id
+                    role_id=role_object.id #grab id from role_object 
                 )
         
         db.session.add(new_user)
         db.session.commit()
 
+        now = int(datetime.now(timezone.utc).timestamp()) #get current time in timestamp format
+        
         payload = {
-                    "iat": datetime.now(timezone.utc),
-                    "exp": datetime.now(timezone.utc) + timedelta(hours=1), #expires in 1 hour
+                    "iat": now,
+                    "exp": now + 1200, #expires in 20 minutes
                     "username": username,
                     "role" : role_object.name
                 }
@@ -211,8 +242,8 @@ def handleSignup():
             "message": "Signing Up",
             "token": token,
             "username": username,
-            "role" : role_object.name
-        }),200
+            "role" : role_object.name #grab name attribute from role_object
+        }),201
 
     except Exception as error:
         print("signup error")
@@ -230,17 +261,23 @@ def handleCreateCommunity(username,role):
 
         data = request.get_json()
 
+        if data is None:
+            return jsonify({
+                "messagetype": "Error",
+                "message": "Invalid or missing JSON payload"
+            }), 400
+            
         title = data.get("title")
         description = data.get("description")
 
         #check if user's community name choise already exists
         existingCommunity = db.session.execute(db.select(Subchessits).filter_by(title=title)).scalar_one_or_none()
 
-        if existingCommunity is not None:
+        if existingCommunity:
             return jsonify({
-                    "messagetype": "Error",
-                    "message": "Community Name already exists"
-                    }),409   
+                "messagetype": "Error",
+                "message": "Community Name already exists"
+                }),409   
         
         new_community = Subchessits(
             title = title,
@@ -267,7 +304,7 @@ def handleCreateCommunity(username,role):
 @app.route("/getPostsData", methods=["GET"])
 def handleGetFeedData():
     try:
-        #grab all posts from every community
+        #grab posts from unique communities
         feed_posts = db.session.execute(db.select(Posts)).scalars().all()
         
         posts_dict = {}

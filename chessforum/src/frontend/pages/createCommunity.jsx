@@ -1,93 +1,87 @@
 import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 export function CreateCommunity() {
+  const [dataForm, setDataForm] = useState({
+    title: "",
+    description: "",
+  });
 
-    const [dataForm, setDataForm] = useState({
-        "title": "",
-        "description": ""
-    })
+  const [serverMessage, setServerMessage] = useState("");
 
-    const [serverMessage, setServerMessage] = useState("");
+  const { token } = useAuth();
 
-    const { token } = useAuth();
+  //formdata object changes dinamically
+  const handleFormChange = (key, value) => {
+    setDataForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-    //formdata object changes dinamically
-    const handleFormChange = (key, value) => {
-        setDataForm((prev) => ({ ...prev, [key]: value }));
-    };
+  async function submitButton(e) {
+    setServerMessage("");
 
-    async function submitButton(e) {
+    e.preventDefault(); //dont reload page when submit is clicked (since form is used)
 
-        setServerMessage("");
+    const response = await fetch("http://localhost:8001/createCommunity", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(dataForm),
+    });
 
-        e.preventDefault(); //dont reload page when submit is clicked (since form is used)
+    const data = await response.json();
 
-        const response = await fetch('http://localhost:8001/createCommunity', {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(dataForm)
-
-        })
-
-        const data = await response.json();
-
-        if (response.ok) {
-            Swal.fire({
-                title: 'Success!',
-                text: `${data.message}`,
-                icon: 'success',
-                confirmButtonText: 'Awesome',
-                confirmButtonColor: '#3085d6'
-            }).then((result) => {
-                if (result.isConfirmed) {
-
-                    setDataForm({
-                        "title": "",
-                        "description": ""
-                    })
-
-                }
-            });
+    if (response.ok) {
+      Swal.fire({
+        title: "Success!",
+        text: `${data.message}`,
+        icon: "success",
+        confirmButtonText: "Awesome",
+        confirmButtonColor: "#3085d6",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          setDataForm({
+            title: "",
+            description: "",
+          });
         }
-        else {
-            setServerMessage(data.message);
-        }
-
-
+      });
+    } else {
+      setServerMessage(data.message);
     }
+  }
 
-    return (
-        <div>
-            <Fields submitButton={submitButton} handleFormChange={handleFormChange} />
-            <ServerMessage serverMessage={serverMessage} />
-        </div>
-    );
+  return (
+    <div>
+      <Fields submitButton={submitButton} handleFormChange={handleFormChange} />
+      <ServerMessage serverMessage={serverMessage} />
+    </div>
+  );
 }
 
 function Fields({ submitButton, handleFormChange }) {
-    return (
-        <form onSubmit={submitButton}>
-            <input
-                type="text"
-                placeholder="Title"
-                onChange={(e) => handleFormChange("title", e.target.value)}
-            /><br />
-            <input
-                type="text"
-                placeholder="Description"
-                onChange={(e) => handleFormChange("description", e.target.value)}
-            /><br />
-            <button type="submit">Create Community</button>
-        </form>
-    );
+  return (
+    <form onSubmit={submitButton}>
+      <input
+        type="text"
+        placeholder="Title"
+        onChange={(e) => handleFormChange("title", e.target.value)}
+      />
+      <br />
+      <input
+        type="text"
+        placeholder="Description"
+        onChange={(e) => handleFormChange("description", e.target.value)}
+      />
+      <br />
+      <button type="submit">Create Community</button>
+    </form>
+  );
 }
 
 function ServerMessage({ serverMessage }) {
-    return <p>{serverMessage}</p>
+  return <p>{serverMessage}</p>;
 }

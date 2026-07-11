@@ -1,61 +1,29 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/AuthContext.jsx";
 import { useEffect, useState } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { ChatBubbleOutlineOutlined as ChatBubbleOutlineIcon } from "@mui/icons-material";
 
 export function LandingPage() {
+  
   const navig = useNavigate();
-
-  const { token } = useAuth();
-
-  return (
-    <div>
-      <LoginButton navigate={navig} />
-      <SignupButton navigate={navig} />
-      <CreateCommunity navigate={navig} token={token} />
-      <DisplayPosts navig={navig} />
-    </div>
-  );
-}
-
-function LoginButton({ navigate }) {
-  return <button onClick={() => navigate("/login")}>Login</button>;
-}
-
-function SignupButton({ navigate }) {
-  return <button onClick={() => navigate("/signup")}>Signup</button>;
-}
-
-function CreateCommunity({ navigate, token }) {
-  return token ? (
-    <button onClick={() => navigate("/createCommunity")}>
-      Create Community
-    </button>
-  ) : null;
-}
-
-//posts from all communities
-function DisplayPosts({ navig }) {
   const [postsList, setPostsList] = useState({});
 
   useEffect(() => {
+    async function fetchPosts() {
+      const response = await fetch("http://localhost:8001/getPostsData", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      setPostsList(data);
+    }
     fetchPosts();
   }, []);
-
-  async function fetchPosts() {
-    const response = await fetch("http://localhost:8001/getPostsData", {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-    });
-
-    const data = await response.json();
-
-    setPostsList(data);
-  }
 
   return (
     <Box
@@ -128,11 +96,11 @@ function DisplayPosts({ navig }) {
               variant="text"
               startIcon={
                 <ChatBubbleOutlineIcon sx={{ fontSize: "1rem !important" }} />
-              } 
+              }
               onClick={(e) => {
                 e.stopPropagation();
                 navig("/showSpecificPost", {
-                  state: { post_id: post_id},
+                  state: { post_id: post_id },
                 });
               }}
               sx={{
@@ -146,7 +114,7 @@ function DisplayPosts({ navig }) {
                 },
               }}
             >
-             Comments   
+              Comments
             </Button>
           </Box>
         );
