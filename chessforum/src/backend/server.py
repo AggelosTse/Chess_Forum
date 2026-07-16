@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import sys 
 import jwt
-from datetime import datetime, timedelta,timezone
+from datetime import datetime,timezone
 import bcrypt
 import re
 from sqlalchemy import func
@@ -256,7 +256,7 @@ def handle_signup():
     
 @app.route("/createCommunity", methods=["POST"])
 @token_required
-def handleCreateCommunity(username,role):
+def create_community(username,role):
     try:
 
         data = request.get_json()
@@ -269,6 +269,12 @@ def handleCreateCommunity(username,role):
             
         title = data.get("title")
         description = data.get("description")
+
+        if not title:
+            return jsonify({
+                "messagetype": "Error",
+                "message": "Title is required" 
+            }),400
 
         #check if user's community name choise already exists
         existingCommunity = db.session.execute(db.select(Subchessits).filter_by(title=title)).scalar_one_or_none()
@@ -302,7 +308,7 @@ def handleCreateCommunity(username,role):
             }),500
 
 @app.route("/getPostsData", methods=["GET"])
-def handleGetFeedData():
+def handle_postsData():
     try:
         #grab posts from unique communities
         feed_posts = db.session.execute(db.select(Posts)).scalars().all()
@@ -328,7 +334,9 @@ def handleGetFeedData():
                     "userWhoPosted" : userWhoPosted,
                     "community_id": post.subchessit_id,
                     "community_name": community_name,  #keep community name to display in frontend
-                    "description": post.description
+                    "description": post.description,
+                    "upvotes" : post.upvotes,
+                    "downvotes" : post.downvotes
                 }
            
         
@@ -344,7 +352,7 @@ def handleGetFeedData():
             }),500
     
 @app.route("/getSpecificPost", methods=["GET"])
-def handleGetSpecificPost():
+def handle_specificPost():
     try:
         post_id = request.args.get("post_id")
 
@@ -366,7 +374,9 @@ def handleGetSpecificPost():
             "description" : specificPostData.description,
             "userWhoPosted" : userWhoPosted,
             "community" : communityOfPost,
-            "community_id" : specificPostData.subchessit_id
+            "community_id" : specificPostData.subchessit_id,
+            "upvotes" : specificPostData.upvotes,
+            "downvotes" : specificPostData.downvotes
         }),200
     
 
@@ -412,7 +422,7 @@ def handleGetComments():
             }),500
     
 
-@app.route("/addNewComment", methods=["POST"])
+@app.route("/createComment", methods=["POST"])
 @token_required
 def handleAddComment(username,role):
     try:
@@ -488,7 +498,10 @@ def handleGetCommunity():
                 "user_id": community_post.user_id,
                 "userWhoPosted" : userWhoPosted,
                 "community_name": community_name,  #keep community name to display in frontend
-                "description": community_post.description
+                "community_id" : community_post.subchessit_id,
+                "description": community_post.description,
+                "upvotes" : community_post.upvotes,
+                "downvotes" : community_post.downvotes
             }
         
         return jsonify(posts_dict),200
@@ -502,7 +515,10 @@ def handleGetCommunity():
             "message": "Internal Server Error"
             }),500
 
-
+@app.route("/createPost", methods=["POST"])
+def create_post():
+    
+    pass
 if __name__ == "__main__":
     with app.app_context():
         db.create_all() #create the database tables

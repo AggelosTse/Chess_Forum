@@ -1,8 +1,6 @@
-import { Box, Typography, Button } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { useState } from "react";
-import { ChatBubbleOutlineOutlined as ChatBubbleOutlineIcon } from "@mui/icons-material";
+import { PostsDisplay } from "../components/postsDisplay.jsx";
 
 export function ShowCommunity() {
   const [postsList, setPostsList] = useState({});
@@ -11,6 +9,7 @@ export function ShowCommunity() {
 
   const location = useLocation();
   const community_id = location.state?.community_id;
+  console.log(community_id);
 
   useEffect(() => {
     async function fetchPosts() {
@@ -32,86 +31,21 @@ export function ShowCommunity() {
     fetchPosts();
   }, [community_id]);
 
-  const postKeys = Object.keys(postsList);
-  const communityName =
-    postKeys.length > 0
-      ? postsList[postKeys[0]].community_name
-      : "Loading Community...";
-
   return (
     <div>
-      <Typography variant="h4" sx={{ textAlign: "center", mt: 3 }}>
-        {communityName}
-      </Typography>{" "}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 3,
-          flexWrap: "wrap",
-          p: 2,
-        }}
+      <button
+        onClick={() =>
+          navig("/createPost", {
+            state: {
+              specificCommunity: true,
+              community_id: community_id
+            },
+          })
+        }
       >
-        {Object.keys(postsList).map((post_id) => {
-          const post = postsList[post_id];
-
-          return (
-            <Box
-              key={post_id}
-              component="div"
-              onClick={() =>
-                navig("/showSpecificPost", { state: { post_id: post_id } })
-              }
-              sx={{
-                width: "300px",
-                aspectRatio: "1 / 1",
-                border: "1px dashed grey",
-                p: 2,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                boxSizing: "border-box",
-                cursor: "pointer", // make whole box look clickable
-                "&:hover": {
-                  backgroundColor: "rgba(0, 0, 0, 0.02)", //hover effect
-                },
-              }}
-            >
-              <Typography variant="h6">{post.title}</Typography>
-              <Typography variant="body2">{post.description}</Typography>
-              <Typography variant="body2">{post.userWhoPosted}</Typography>
-
-              {/* comments button */}
-              <Button
-                size="small"
-                variant="text"
-                startIcon={
-                  <ChatBubbleOutlineIcon sx={{ fontSize: "1rem !important" }} />
-                }
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navig("/showSpecificPost", {
-                    state: { post_id: post_id },
-                  });
-                }}
-                sx={{
-                  textTransform: "none",
-                  padding: 0,
-                  minWidth: "auto",
-                  fontSize: "0.75rem",
-                  color: "text.secondary",
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                }}
-              >
-                Comments
-              </Button>
-            </Box>
-          );
-        })}
-      </Box>
+        create post
+      </button>
+      <PostsDisplay postsList={postsList} specificCommunity={true} />
     </div>
   );
 }

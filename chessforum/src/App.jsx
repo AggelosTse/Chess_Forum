@@ -13,7 +13,7 @@ import { SignupPage } from "./frontend/pages/signup.jsx";
 import { CreateCommunity } from "./frontend/pages/createCommunity.jsx";
 import { ShowPost } from "./frontend/pages/showSpecificPost.jsx";
 import { ShowCommunity } from "./frontend/pages/showSpecificCommunity.jsx";
-
+import { CreatePost } from "./frontend/components/createPost.jsx";
 
 function App() {
   return (
@@ -30,6 +30,8 @@ function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route path="/createCommunity" element={<CreateCommunity />} />
+              <Route path="/createPost" element={<CreatePost />} />
+
             </Route>
           </Route>
         </Routes>
