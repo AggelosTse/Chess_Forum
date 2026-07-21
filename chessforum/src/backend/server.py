@@ -277,7 +277,7 @@ def create_community(username,role):
             }),400
 
         #check if user's community name choise already exists
-        existingCommunity = db.session.execute(db.select(Subchessits).filter_by(title=title)).scalar_one_or_none()
+        existingCommunity = db.session.get(Subchessits,title)
 
         if existingCommunity:
             return jsonify({
@@ -407,7 +407,9 @@ def handleGetComments():
                 "id": comment.id,                             
                 "parent_id": comment.parent_id,               
                 "text": comment.text,                         
-                "username": comment.users.username     
+                "username": comment.users.username,
+                "upvotes" : comment.upvotes,
+                "downvotes" : comment.downvotes
             })
                 
             return jsonify(comments_list),200
@@ -516,9 +518,114 @@ def handleGetCommunity():
             }),500
 
 @app.route("/createPost", methods=["POST"])
-def create_post():
+@token_required
+def create_post(username, role):
+    try:
+        
+        data = request.get_json()
+        
+        title = data.get("title")
+        description = data.get("description")
+        community_id = data.get("community_id")
+            
+        if not title:
+                return jsonify({
+                    "messagetype": "Error",
+                    "message": "Title is required" 
+                }),400
+        
+        if community_id:
+            community_exists = db.session.get(Subchessits, community_id)
+            if not community_exists:
+                return jsonify({
+                    "messagetype": "Error",
+                    "message": "Couldnt find community" 
+                }),404
+            
+        #get user's data 
+        user_data = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()
+                
+        #get user id to store in the new posts row
+        user_id = user_data.id
+        
+        new_post = Posts(
+            title=title,
+            image=None,
+            description=description,
+            user_id=user_id,
+            subchessit_id=community_id,
+            upvotes=0,
+            downvotes=0
+        )
+        
+        db.session.add(new_post)
+        db.session.commit()
+
+        return jsonify({
+            "messagetype": "Success",
+            "message": "Post Created Successfully"
+        }),200
+        
+    except Exception as error:
+        print("create post error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500 
+        
+
+@app.route("/getSimilarResults", methods=["GET"])
+def similar_results():
+    try:        
+        searchTerm = request.args.get("searchterm")
+        
+        if not searchTerm:
+            return jsonify({
+                    "messagetype": "Error",
+                    "message": "search term is missing" 
+                }),400
+        
+        #gets 10 rows of data that starts with the input user gave ()
+        similar_results = db.session.execute(db.select(Subchessits).where(Subchessits.title.istartswith(searchTerm)).limit(10)).scalars().all() 
+        #store them in a list
+        results = []
+        for result in similar_results:
+            results.append({
+                "id": result.id,       
+                "title": result.title  
+            })
+        
+        return jsonify(results),200
+
+        
+    except Exception as error:
+        print("similar results error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500 
+        
+
+@app.route("/updatePostVotes", methods=["POST"])
+@token_required
+def update_votes():
     
-    pass
+    data = request.get_json()
+    
+    isUpvoted = data.get("upvoted")
+    post_id = data.get("post_id")
+    
+    #TODO: add more secure if statements
+    
+    if isUpvoted:
+        pass
+    
+    
+    
 if __name__ == "__main__":
     with app.app_context():
         db.create_all() #create the database tables

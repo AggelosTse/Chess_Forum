@@ -37,7 +37,7 @@ class Posts(db.Model):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(100),nullable=False)
-    image: Mapped[str] = mapped_column(String(150))
+    image: Mapped[str] = mapped_column(String(150), nullable=True) #for now, posts wont have images
     description: Mapped[str] = mapped_column(Text, nullable=False)
     
     #when a post is added, upvotes and downvotes take 0 as a value
@@ -57,6 +57,9 @@ class Comments(db.Model):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    upvotes: Mapped[int] = mapped_column(default=0,server_default='0')
+    downvotes: Mapped[int] = mapped_column(default=0, server_default='0') 
     
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     post_id: Mapped[int] = mapped_column(ForeignKey("post.id", ondelete="CASCADE"), nullable=False)   

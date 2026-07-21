@@ -80,7 +80,7 @@ function CreatePostButton({ navig }) {
         navig("/createPost", {
           state: {
             specificCommunity: false,
-            community_id: "",
+            community_id: ""
           },
         })
       }

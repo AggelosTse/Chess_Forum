@@ -9,7 +9,6 @@ export function ShowCommunity() {
 
   const location = useLocation();
   const community_id = location.state?.community_id;
-  console.log(community_id);
 
   useEffect(() => {
     async function fetchPosts() {
@@ -38,7 +37,7 @@ export function ShowCommunity() {
           navig("/createPost", {
             state: {
               specificCommunity: true,
-              community_id: community_id
+              community_id: community_id,
             },
           })
         }

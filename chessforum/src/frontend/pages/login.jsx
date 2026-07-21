@@ -7,7 +7,7 @@ export function LoginPage() {
 
   const [dataForm, setDataForm] = useState({
     username: "",
-    password: "",
+    password: ""
   });
   const [serverMessage, setServerMessage] = useState("");
 
@@ -27,7 +27,7 @@ export function LoginPage() {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(dataForm),
+      body: JSON.stringify(dataForm)
     });
 
     const data = await response.json();
