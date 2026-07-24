@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column,relationship
-from sqlalchemy import String,ForeignKey,Text
+from sqlalchemy import String,ForeignKey,Text,UniqueConstraint
 from typing import List,Optional
 
 class Base(DeclarativeBase):
@@ -23,7 +23,9 @@ class Users(db.Model):
     #cascade -> when user is deleted, posts and comments are too
     posts: Mapped[List["Posts"]] = relationship(back_populates="users",cascade="all, delete-orphan") 
     comments: Mapped[List["Comments"]] = relationship(back_populates="users",cascade="all, delete-orphan")
-    
+    post_votes: Mapped[List["PostVotes"]] = relationship(back_populates="users", cascade="all, delete-orphan")
+    comment_votes: Mapped[List["CommentVotes"]] = relationship(back_populates="users", cascade="all, delete-orphan")  
+
 class Roles(db.Model):
     __tablename__ = "role"
     
@@ -40,7 +42,7 @@ class Posts(db.Model):
     image: Mapped[str] = mapped_column(String(150), nullable=True) #for now, posts wont have images
     description: Mapped[str] = mapped_column(Text, nullable=False)
     
-    #when a post is added, upvotes and downvotes take 0 as a value
+    #used for the total upvotes/downvotes of every post
     upvotes: Mapped[int] = mapped_column(default=0,server_default='0')
     downvotes: Mapped[int] = mapped_column(default=0, server_default='0') 
         
@@ -51,6 +53,7 @@ class Posts(db.Model):
     users: Mapped["Users"] = relationship(back_populates="posts")
     subchessits: Mapped["Subchessits"] = relationship(back_populates="posts")
     comments: Mapped[List["Comments"]] = relationship(back_populates="posts", cascade="all, delete-orphan")
+    post_votes: Mapped[List["PostVotes"]] = relationship(back_populates="posts", cascade="all, delete-orphan")  
 
 class Comments(db.Model):
     __tablename__ = "comment"
@@ -67,7 +70,10 @@ class Comments(db.Model):
     
     users: Mapped["Users"] = relationship(back_populates="comments")
     posts: Mapped["Posts"] = relationship(back_populates="comments") 
-    
+
+    comment_votes: Mapped[List["CommentVotes"]] = relationship(back_populates="comments", cascade="all, delete-orphan")  
+
+
 class Subchessits(db.Model):
     __tablename__ = "subchessit"
     
@@ -76,3 +82,41 @@ class Subchessits(db.Model):
     description: Mapped[str] = mapped_column(Text,nullable=False)
     
     posts: Mapped[List["Posts"]] = relationship(back_populates="subchessits", cascade="all, delete-orphan")
+
+class PostVotes(db.Model):
+    __tablename__ = "postvotes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    vote: Mapped[str] = mapped_column(String(10),nullable=False)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    post_id: Mapped[int] = mapped_column(ForeignKey("post.id", ondelete="CASCADE"), nullable=False)
+
+    users: Mapped["Users"] = relationship(back_populates="post_votes")
+    posts: Mapped["Posts"] = relationship(back_populates="post_votes")
+
+    #one user cant have more than 1 vote in the same post
+    __table_args__ = (
+        UniqueConstraint('user_id', 'post_id', name='unique_user_post_vote'),
+    )
+
+class CommentVotes(db.Model):
+    __tablename__ = "commentvotes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    vote: Mapped[str] = mapped_column(String(10),nullable=False)
+
+    comment_id: Mapped[int] = mapped_column(ForeignKey("comment.id", ondelete="CASCADE"), nullable=False)
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+
+    users: Mapped["Users"] = relationship(back_populates="comment_votes")
+    comments: Mapped["Comments"] = relationship(back_populates="comment_votes")
+
+    #one user cant have more than 1 vote in the same comment
+    __table_args__ = (
+        UniqueConstraint('user_id', 'comment_id', name='unique_user_comment_vote'),
+    )
+   

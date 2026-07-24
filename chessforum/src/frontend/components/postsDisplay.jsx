@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-
+import { useAuth } from "../../auth/AuthContext";
 import { Box, Typography, Button } from "@mui/material";
 
 import {
@@ -8,39 +8,45 @@ import {
   ArrowDownwardOutlined as ArrowDownwardIcon,
 } from "@mui/icons-material";
 
-export function PostsDisplay({ postsList, specificCommunity }) {
+export function PostsDisplay({ postsList, setPostsList, specificCommunity }) {
   const navig = useNavigate();
 
-  async function updateVotes(value, post_id) {
-    const response = null;
+  const { token } = useAuth();
 
-    switch (value) {
-      case 1:
-        response = await fetch("http://localhost:8001/updatePostVotes", {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
+  async function updateVotes(value, post_id) {
+
+    const voteType = value === 1 ? "upvoted" : "downvoted";
+
+    const response = await fetch("http://localhost:8001/updatePostVotes", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        "vote": voteType,
+        "post_id": post_id,
+      }),
+    });
+    const data = await response.json();
+
+    if (response.ok) {
+      //change postslist by state for the specific post, so it can render the new post data with the new votes
+      if (setPostsList) {
+        setPostsList((prevPosts) => ({
+          ...prevPosts,
+          [post_id]: {
+            ...prevPosts[post_id],
+            upvotes: data.upvotes,  // the updated voptes from backend
+            downvotes: data.downvotes,
           },
-          body: JSON.stringify({
-            "upvoted": true,
-            "post_id": post_id,
-          }),
-        });
-      case -1:
-        response = await fetch("http://localhost:8001/updatePostVotes", {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            "upvoted": false,
-            "post_id": post_id
-          }),
-        });
+        }));
+      }
     }
+
   }
+
 
   return (
     <div>

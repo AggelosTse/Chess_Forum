@@ -21,5 +21,5 @@ export function LandingPage() {
     fetchPosts();
   }, []);
 
-  return <PostsDisplay postsList={postsList} specificCommunity={false} />;
+  return <PostsDisplay postsList={postsList} setPostsList={setPostsList} specificCommunity={false} />;
 }

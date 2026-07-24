@@ -7,10 +7,58 @@ import {
   ArrowDownwardOutlined as ArrowDownwardIcon,
 } from "@mui/icons-material";
 
-export function CommentNode({ post_id, comment, setCommentTrigger }) {
+export function CommentNode({ post_id, comment, setCommentTrigger, setCommentsList }) {
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const { token } = useAuth();
+
+  //helper to update comments after votes are added
+  function updateCommentInTree(comments, targetId, newUpvotes, newDownvotes) {
+    return comments.map((c) => {
+      if (c.id === targetId) {
+        return {
+          ...c,
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+        };
+      }
+      if (c.children && c.children.length > 0) {
+        return {
+          ...c,
+          children: updateCommentInTree(c.children, targetId, newUpvotes, newDownvotes),
+        };
+      }
+      return c;
+    });
+  }
+
+  async function updateVotes(value, comment_id) {
+
+    const voteType = value === 1 ? "upvoted" : "downvoted";
+
+    const response = await fetch("http://localhost:8001/updateCommentVotes", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        "vote": voteType,
+        "comment_id": comment_id,
+      }),
+    });
+    const data = await response.json();
+    
+    if (response.ok && data.upvotes !== undefined) {
+      if (setCommentsList) {
+        setCommentsList((prevComments) =>
+          updateCommentInTree(prevComments, comment_id, data.upvotes, data.downvotes)
+        );
+      }
+    }
+  }
+
 
   async function handleReplySubmit(e) {
     e.preventDefault();
@@ -18,7 +66,7 @@ export function CommentNode({ post_id, comment, setCommentTrigger }) {
     if (!replyText.trim()) return;
 
     try {
-      const response = await fetch("http://localhost:8001/addNewComment", {
+      const response = await fetch("http://localhost:8001/createComment", {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -87,6 +135,8 @@ export function CommentNode({ post_id, comment, setCommentTrigger }) {
           startIcon={<ArrowUpwardIcon sx={{ fontSize: "1rem !important" }} />}
           onClick={(e) => {
             e.stopPropagation();
+            const value = 1;
+            updateVotes(value, comment.id);
           }}
           sx={{
             textTransform: "none",
@@ -106,6 +156,8 @@ export function CommentNode({ post_id, comment, setCommentTrigger }) {
           startIcon={<ArrowDownwardIcon sx={{ fontSize: "1rem !important" }} />}
           onClick={(e) => {
             e.stopPropagation();
+            const value = -1;
+            updateVotes(value, comment.id);
           }}
           sx={{
             textTransform: "none",
@@ -156,6 +208,7 @@ export function CommentNode({ post_id, comment, setCommentTrigger }) {
               post_id={post_id}
               comment={childComment}
               setCommentTrigger={setCommentTrigger}
+              setCommentsList={setCommentsList}
             />
           ))}
         </Box>

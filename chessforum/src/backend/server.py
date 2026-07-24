@@ -7,13 +7,12 @@ import jwt
 from datetime import datetime,timezone
 import bcrypt
 import re
-from sqlalchemy import func
 from flask_cors import CORS
 from functools import wraps
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from database.database import db, Roles,Users,Posts,Comments,Subchessits
+from database.database import db, Roles,Users,Posts,Comments,Subchessits,PostVotes,CommentVotes
 
 app = Flask(__name__)
 
@@ -53,6 +52,7 @@ def token_required(f):
             data = jwt.decode(token, app.config["TOKENKEY"], algorithms=["HS256"])
 
             username = data["username"]
+            user_id = data["user_id"]
             role = data["role"]
 
         except jwt.ExpiredSignatureError:
@@ -73,9 +73,10 @@ def token_required(f):
                 "message": str(e)
                 }), 401)
 
-        return f(username, role, *args, **kwargs)
+        return f(username, user_id, role, *args, **kwargs)
     return decorator
 
+#AUTH
 
 @app.route('/login', methods=["POST"])
 def handle_login():
@@ -114,6 +115,7 @@ def handle_login():
                         "iat": now,
                         "exp": now + 1200, #expires in 20 minutes
                         "username": username,
+                        "user_id" : userData.id,
                         "role" : user_role
                     }
 
@@ -124,6 +126,7 @@ def handle_login():
                     "message": "Logging in",
                     "token": token,
                     "username": username,
+                    "user_id" : userData.id,
                     "role" : user_role
                 }),200        
                 
@@ -226,12 +229,16 @@ def handle_signup():
         db.session.add(new_user)
         db.session.commit()
 
+    #to get the user id 
+        userData = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()    
+
         now = int(datetime.now(timezone.utc).timestamp()) #get current time in timestamp format
         
         payload = {
                     "iat": now,
                     "exp": now + 1200, #expires in 20 minutes
                     "username": username,
+                    "user_id" : userData.id,
                     "role" : role_object.name
                 }
 
@@ -242,6 +249,7 @@ def handle_signup():
             "message": "Signing Up",
             "token": token,
             "username": username,
+            "user_id" : userData.id,
             "role" : role_object.name #grab name attribute from role_object
         }),201
 
@@ -253,10 +261,12 @@ def handle_signup():
             "messagetype": "Error",
             "message": "Internal Server Error"
             }),500
-    
+
+#COMMUNITY
+
 @app.route("/createCommunity", methods=["POST"])
 @token_required
-def create_community(username,role):
+def create_community(username, user_id ,role):
     try:
 
         data = request.get_json()
@@ -307,6 +317,8 @@ def create_community(username,role):
             "message": "Internal Server Error"
             }),500
 
+#POSTS
+
 @app.route("/getPostsData", methods=["GET"])
 def handle_postsData():
     try:
@@ -335,7 +347,7 @@ def handle_postsData():
                     "community_id": post.subchessit_id,
                     "community_name": community_name,  #keep community name to display in frontend
                     "description": post.description,
-                    "upvotes" : post.upvotes,
+                    "upvotes" : post.upvotes,   #total upvotes and downvotes
                     "downvotes" : post.downvotes
                 }
            
@@ -389,84 +401,6 @@ def handle_specificPost():
             "message": "Internal Server Error"
             }),500
     
-@app.route("/getComments", methods=["GET"])
-def handleGetComments():
-    try:
-
-        post_id = request.args.get("post_id")
-
-        #get all comments that are in this specific post
-        comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
-
-        if comments is not None:
-
-            comments_list = []
-
-            for comment in comments:
-                comments_list.append({
-                "id": comment.id,                             
-                "parent_id": comment.parent_id,               
-                "text": comment.text,                         
-                "username": comment.users.username,
-                "upvotes" : comment.upvotes,
-                "downvotes" : comment.downvotes
-            })
-                
-            return jsonify(comments_list),200
-
-    except Exception as error:
-        print("getComments error")
-        print(str(error))
-
-        return jsonify({
-            "messagetype": "Error",
-            "message": "Internal Server Error"
-            }),500
-    
-
-@app.route("/createComment", methods=["POST"])
-@token_required
-def handleAddComment(username,role):
-    try:
-
-        data = request.get_json()
-        post_id = data.get("post_id")
-        commentText = data.get("commentText")
-        addedFromField = data.get("addedFromField")
-
-        if addedFromField: parent_id = None
-        else: parent_id = data.get("parent_id")
-
-         
-        #since comments table is storing user_id, finds it from the username
-        userData = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()
-        user_id = userData.id
-
-        new_comment = Comments(
-            text=commentText,
-            user_id=user_id,
-            parent_id=parent_id,
-            post_id=post_id
-        )
-    
-        db.session.add(new_comment)
-        db.session.commit()
-        
-        return jsonify({
-        "messagetype": "Success",
-        "message": "Comment Added Successfully"
-        }),200
-    
-
-    except Exception as error:
-        print("addComment error")
-        print(str(error))
-
-        return jsonify({
-            "messagetype": "Error",
-            "message": "Internal Server Error"
-            }),500
-
 @app.route("/getSpecificCommunityPosts", methods=["GET"])
 def handleGetCommunity():
 
@@ -519,7 +453,7 @@ def handleGetCommunity():
 
 @app.route("/createPost", methods=["POST"])
 @token_required
-def create_post(username, role):
+def create_post(username, user_id ,role):
     try:
         
         data = request.get_json()
@@ -542,12 +476,6 @@ def create_post(username, role):
                     "message": "Couldnt find community" 
                 }),404
             
-        #get user's data 
-        user_data = db.session.execute(db.select(Users).filter_by(username=username)).scalar_one_or_none()
-                
-        #get user id to store in the new posts row
-        user_id = user_data.id
-        
         new_post = Posts(
             title=title,
             image=None,
@@ -575,6 +503,264 @@ def create_post(username, role):
             "message": "Internal Server Error"
             }),500 
         
+
+@app.route("/updatePostVotes", methods=["POST"])
+@token_required
+def update_postvotes(username, user_id ,role):
+    try:
+        data = request.get_json()
+        
+        current_vote = data.get("vote")
+        post_id = data.get("post_id")
+            
+        existing_vote = db.session.execute(db.select(PostVotes).filter_by(post_id=post_id, user_id=user_id)).scalar_one_or_none()
+
+        current_post = db.session.get(Posts, post_id)
+
+        #if existing vote returns none, user never voted for this post before
+        if not existing_vote:
+
+            #add new vote 
+            new_vote = PostVotes(
+                vote=current_vote,
+                user_id=user_id,
+                post_id=post_id
+            )
+
+            db.session.add(new_vote)
+
+            
+
+            if current_vote == "upvoted" : 
+                current_post.upvotes +=1
+            elif current_vote == "downvoted": 
+                current_post.downvotes += 1
+                
+            db.session.commit()
+
+            #send back specific's post votes so it can be displayed instantly
+            return jsonify({
+                "upvotes": current_post.upvotes,
+                "downvotes": current_post.downvotes
+            }), 200
+
+        if existing_vote.vote == "upvoted":
+            
+            if current_vote == "upvoted":
+
+                current_post.upvotes -= 1
+                
+                db.session.delete(existing_vote)    #if upvote is clicked for a second time, it counts as unvote (deleting vote)
+                
+
+            elif current_vote == "downvoted":
+
+                current_post.upvotes -= 1
+                current_post.downvotes += 1
+
+                existing_vote.vote = "downvoted"
+
+        elif existing_vote.vote == "downvoted":
+
+            if current_vote == "downvoted":
+
+                current_post.downvotes -= 1
+                
+                db.session.delete(existing_vote)    #if downvote is clicked for a second time, it counts as unvote (deleting vote)
+                
+            elif current_vote == "upvoted":
+
+                current_post.upvotes += 1
+                current_post.downvotes -= 1
+
+                existing_vote.vote = "upvoted"
+
+
+        db.session.commit()
+
+        #send back specific's post votes so it can be displayed instantly
+        return jsonify({
+            "upvotes": current_post.upvotes,
+            "downvotes": current_post.downvotes
+        }), 200
+       
+    except Exception as error:
+        print("update post vote error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500 
+
+#COMMENTS
+
+@app.route("/updateCommentVotes", methods=["POST"])
+@token_required
+def update_commentvotes(username, user_id ,role):
+
+    try:
+
+        data = request.get_json()
+                
+        current_vote = data.get("vote")
+        comment_id = data.get("comment_id")
+                    
+        existing_vote = db.session.execute(db.select(CommentVotes).filter_by(comment_id=comment_id, user_id=user_id)).scalar_one_or_none()
+
+        current_comment = db.session.get(Comments, comment_id)
+
+        #if existing vote returns none, user never voted for this comment before
+        if not existing_vote:
+
+            #add new vote 
+            new_vote = CommentVotes(
+                vote=current_vote,
+                comment_id=comment_id,
+                user_id=user_id,
+                
+            )
+
+            db.session.add(new_vote)
+
+            if current_vote == "upvoted" : 
+                current_comment.upvotes +=1
+            elif current_vote == "downvoted": 
+                current_comment.downvotes += 1
+                
+            db.session.commit()
+
+            #send back specific's post votes so it can be displayed instantly
+            return jsonify({
+                "upvotes": current_comment.upvotes,
+                "downvotes": current_comment.downvotes
+            }), 200
+
+        if existing_vote.vote == "upvoted":
+                    
+            if current_vote == "upvoted":
+
+                current_comment.upvotes -= 1
+                
+                db.session.delete(existing_vote)    #if upvote is clicked for a second time, it counts as unvote (deleting vote)
+                
+
+            elif current_vote == "downvoted":
+
+                current_comment.upvotes -= 1
+                current_comment.downvotes += 1
+
+                existing_vote.vote = "downvoted"
+
+        elif existing_vote.vote == "downvoted":
+
+            if current_vote == "downvoted":
+
+                current_comment.downvotes -= 1
+                
+                db.session.delete(existing_vote)    #if downvote is clicked for a second time, it counts as unvote (deleting vote)
+                
+            elif current_vote == "upvoted":
+
+                current_comment.upvotes += 1
+                current_comment.downvotes -= 1
+
+                existing_vote.vote = "upvoted"
+
+        db.session.commit()
+
+        #send back specific's post votes so it can be displayed instantly
+        return jsonify({
+            "upvotes": current_comment.upvotes,
+            "downvotes": current_comment.downvotes
+        }), 200
+
+    except Exception as error:
+            print("update post vote error")
+            print(str(error))
+
+            return jsonify({
+                "messagetype": "Error",
+                "message": "Internal Server Error"
+                }),500 
+
+    
+@app.route("/getComments", methods=["GET"])
+def handleGetComments():
+    try:
+
+        post_id = request.args.get("post_id")
+
+        #get all comments that are in this specific post
+        comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
+
+        if comments is not None:
+
+            comments_list = []
+
+            for comment in comments:
+                comments_list.append({
+                "id": comment.id,                             
+                "parent_id": comment.parent_id,               
+                "text": comment.text,                         
+                "username": comment.users.username,
+                "upvotes" : comment.upvotes,
+                "downvotes" : comment.downvotes
+            })
+                
+            return jsonify(comments_list),200
+
+    except Exception as error:
+        print("getComments error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
+    
+
+@app.route("/createComment", methods=["POST"])
+@token_required
+def handleAddComment(username, user_id ,role):
+    try:
+
+        data = request.get_json()
+        post_id = data.get("post_id")
+        commentText = data.get("commentText")
+        addedFromField = data.get("addedFromField")
+
+        print(post_id, commentText, addedFromField)
+
+        if addedFromField: parent_id = None
+        else: parent_id = data.get("parent_id")
+
+        new_comment = Comments(
+            text=commentText,
+            user_id=user_id,
+            parent_id=parent_id,
+            post_id=post_id
+        )
+    
+        db.session.add(new_comment)
+        db.session.commit()
+        
+        return jsonify({
+        "messagetype": "Success",
+        "message": "Comment Added Successfully"
+        }),200
+    
+
+    except Exception as error:
+        print("addComment error")
+        print(str(error))
+
+        return jsonify({
+            "messagetype": "Error",
+            "message": "Internal Server Error"
+            }),500
+
+#SEARCH
 
 @app.route("/getSimilarResults", methods=["GET"])
 def similar_results():
@@ -610,20 +796,7 @@ def similar_results():
             }),500 
         
 
-@app.route("/updatePostVotes", methods=["POST"])
-@token_required
-def update_votes():
-    
-    data = request.get_json()
-    
-    isUpvoted = data.get("upvoted")
-    post_id = data.get("post_id")
-    
-    #TODO: add more secure if statements
-    
-    if isUpvoted:
-        pass
-    
+
     
     
 if __name__ == "__main__":

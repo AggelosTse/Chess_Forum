@@ -44,7 +44,7 @@ export function ShowCommunity() {
       >
         create post
       </button>
-      <PostsDisplay postsList={postsList} specificCommunity={true} />
+      <PostsDisplay postsList={postsList} setPostsList={setPostsList} specificCommunity={true} />
     </div>
   );
 }

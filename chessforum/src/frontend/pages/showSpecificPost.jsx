@@ -97,7 +97,7 @@ function AddNewComment({ post_id }) {
   async function submitButton(e) {
     e.preventDefault();
 
-    const response = await fetch("http://localhost:8001/addNewComment", {
+    const response = await fetch("http://localhost:8001/createComment", {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -178,6 +178,7 @@ function CommentsDisplay({ post_id }) {
             post_id={post_id}
             comment={rootComment}
             setCommentTrigger={setCommentTrigger}
+            setCommentsList={setCommentsList} // to update votes of comments by state
           />
         ))
       )}
