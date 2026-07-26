@@ -287,7 +287,8 @@ def create_community(username, user_id ,role):
             }),400
 
         #check if user's community name choise already exists
-        existingCommunity = db.session.get(Subchessits,title)
+        existingCommunity = db.session.execute(db.select(Subchessits).filter_by(title=title)).scalar_one_or_none()
+        
 
         if existingCommunity:
             return jsonify({

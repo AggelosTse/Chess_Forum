@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column,relationship
-from sqlalchemy import String,ForeignKey,Text,UniqueConstraint
+from sqlalchemy import String,ForeignKey,Text,UniqueConstraint,Column, DateTime, func
 from typing import List,Optional
 
 class Base(DeclarativeBase):
@@ -45,7 +45,8 @@ class Posts(db.Model):
     #used for the total upvotes/downvotes of every post
     upvotes: Mapped[int] = mapped_column(default=0,server_default='0')
     downvotes: Mapped[int] = mapped_column(default=0, server_default='0') 
-        
+    
+    date_added = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
         
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"),nullable=False)
     subchessit_id: Mapped[int] = mapped_column(ForeignKey("subchessit.id", ondelete="CASCADE"), nullable=False)
@@ -64,6 +65,8 @@ class Comments(db.Model):
     upvotes: Mapped[int] = mapped_column(default=0,server_default='0')
     downvotes: Mapped[int] = mapped_column(default=0, server_default='0') 
     
+    date_added = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     post_id: Mapped[int] = mapped_column(ForeignKey("post.id", ondelete="CASCADE"), nullable=False)   
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("comment.id", ondelete="CASCADE"), nullable=True)
@@ -81,6 +84,8 @@ class Subchessits(db.Model):
     title: Mapped[str] = mapped_column(String(70),unique=True,nullable=False)
     description: Mapped[str] = mapped_column(Text,nullable=False)
     
+    date_added = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
     posts: Mapped[List["Posts"]] = relationship(back_populates="subchessits", cascade="all, delete-orphan")
 
 class PostVotes(db.Model):
