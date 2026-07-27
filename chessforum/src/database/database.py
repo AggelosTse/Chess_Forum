@@ -46,6 +46,7 @@ class Posts(db.Model):
     upvotes: Mapped[int] = mapped_column(default=0,server_default='0')
     downvotes: Mapped[int] = mapped_column(default=0, server_default='0') 
     
+    #when a new record is added, timestamp is added automatically
     date_added = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
         
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"),nullable=False)

@@ -1,11 +1,16 @@
 import { Box, Typography, Button } from "@mui/material";
-import { useEffect } from "react";
-import { useLocation } from "react-router";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router";
+
 import { CommentNode } from "../components/commentNode.jsx";
 import { buildCommentTree } from "../../utils/commentHelper.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { useNavigate } from "react-router";
+
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime); //to convert timestamp to relative time
 
 export function ShowPost() {
   const [postData, setPostData] = useState({});
@@ -79,6 +84,7 @@ export function ShowPost() {
         >
           Community: {postData.community}
         </Button>
+        {dayjs(postData.date_added).fromNow()}
       </Box>
 
       <AddNewComment post_id={post_id} />

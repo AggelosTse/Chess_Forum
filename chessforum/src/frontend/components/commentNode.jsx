@@ -2,12 +2,22 @@ import { Box, Typography, Button } from "@mui/material";
 import { useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
 import {
   ArrowUpwardOutlined as ArrowUpwardIcon,
   ArrowDownwardOutlined as ArrowDownwardIcon,
 } from "@mui/icons-material";
 
-export function CommentNode({ post_id, comment, setCommentTrigger, setCommentsList }) {
+dayjs.extend(relativeTime); //to convert timestamp to relative time
+
+export function CommentNode({
+  post_id,
+  comment,
+  setCommentTrigger,
+  setCommentsList,
+}) {
   const [isReplying, setIsReplying] = useState(false);
   const [replyText, setReplyText] = useState("");
   const { token } = useAuth();
@@ -25,7 +35,12 @@ export function CommentNode({ post_id, comment, setCommentTrigger, setCommentsLi
       if (c.children && c.children.length > 0) {
         return {
           ...c,
-          children: updateCommentInTree(c.children, targetId, newUpvotes, newDownvotes),
+          children: updateCommentInTree(
+            c.children,
+            targetId,
+            newUpvotes,
+            newDownvotes
+          ),
         };
       }
       return c;
@@ -33,7 +48,6 @@ export function CommentNode({ post_id, comment, setCommentTrigger, setCommentsLi
   }
 
   async function updateVotes(value, comment_id) {
-
     const voteType = value === 1 ? "upvoted" : "downvoted";
 
     const response = await fetch("http://localhost:8001/updateCommentVotes", {
@@ -44,21 +58,25 @@ export function CommentNode({ post_id, comment, setCommentTrigger, setCommentsLi
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        "vote": voteType,
-        "comment_id": comment_id,
+        vote: voteType,
+        comment_id: comment_id,
       }),
     });
     const data = await response.json();
-    
+
     if (response.ok && data.upvotes !== undefined) {
       if (setCommentsList) {
         setCommentsList((prevComments) =>
-          updateCommentInTree(prevComments, comment_id, data.upvotes, data.downvotes)
+          updateCommentInTree(
+            prevComments,
+            comment_id,
+            data.upvotes,
+            data.downvotes
+          )
         );
       }
     }
   }
-
 
   async function handleReplySubmit(e) {
     e.preventDefault();
@@ -169,6 +187,8 @@ export function CommentNode({ post_id, comment, setCommentTrigger, setCommentsLi
         >
           {comment.downvotes}
         </Button>
+
+        {dayjs(comment.date_added).fromNow()}
       </Box>
 
       {isReplying && (

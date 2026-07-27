@@ -349,7 +349,8 @@ def handle_postsData():
                     "community_name": community_name,  #keep community name to display in frontend
                     "description": post.description,
                     "upvotes" : post.upvotes,   #total upvotes and downvotes
-                    "downvotes" : post.downvotes
+                    "downvotes" : post.downvotes,
+                    "date_added" : post.date_added
                 }
            
         
@@ -389,7 +390,9 @@ def handle_specificPost():
             "community" : communityOfPost,
             "community_id" : specificPostData.subchessit_id,
             "upvotes" : specificPostData.upvotes,
-            "downvotes" : specificPostData.downvotes
+            "downvotes" : specificPostData.downvotes,
+            "date_added" : specificPostData.date_added
+
         }),200
     
 
@@ -416,13 +419,16 @@ def handleGetCommunity():
                 "messagetype": "Error", 
                 "message": "Community not found"
                 }), 404
-        
-        #grab all posts from the selected community
-        community_posts = db.session.execute(db.select(Posts).filter_by(subchessit_id = community_id)).scalars().all()
-        
+            
         #grab its name
         community_name = current_community.title
 
+        #grab the date the community was added
+        community_date_added = current_community.date_added
+        
+        #grab all posts from the selected community via "posts" relationship object
+        community_posts = current_community.posts
+        
         posts_dict = {}
         for community_post in community_posts:
 
@@ -438,7 +444,10 @@ def handleGetCommunity():
                 "community_id" : community_post.subchessit_id,
                 "description": community_post.description,
                 "upvotes" : community_post.upvotes,
-                "downvotes" : community_post.downvotes
+                "downvotes" : community_post.downvotes,
+                "date_added" : community_post.date_added, #every post date added
+                "community_date_added" : community_date_added    #community date added
+
             }
         
         return jsonify(posts_dict),200
@@ -706,7 +715,8 @@ def handleGetComments():
                 "text": comment.text,                         
                 "username": comment.users.username,
                 "upvotes" : comment.upvotes,
-                "downvotes" : comment.downvotes
+                "downvotes" : comment.downvotes,
+                "date_added" : comment.date_added
             })
                 
             return jsonify(comments_list),200

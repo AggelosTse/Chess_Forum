@@ -2,11 +2,16 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { Box, Typography, Button } from "@mui/material";
 
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
 import {
   ChatBubbleOutlineOutlined as ChatBubbleOutlineIcon,
   ArrowUpwardOutlined as ArrowUpwardIcon,
   ArrowDownwardOutlined as ArrowDownwardIcon,
 } from "@mui/icons-material";
+
+dayjs.extend(relativeTime); //to convert timestamp to relative time
 
 export function PostsDisplay({ postsList, setPostsList, specificCommunity }) {
   const navig = useNavigate();
@@ -14,7 +19,6 @@ export function PostsDisplay({ postsList, setPostsList, specificCommunity }) {
   const { token } = useAuth();
 
   async function updateVotes(value, post_id) {
-
     const voteType = value === 1 ? "upvoted" : "downvoted";
 
     const response = await fetch("http://localhost:8001/updatePostVotes", {
@@ -25,8 +29,8 @@ export function PostsDisplay({ postsList, setPostsList, specificCommunity }) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        "vote": voteType,
-        "post_id": post_id,
+        vote: voteType,
+        post_id: post_id,
       }),
     });
     const data = await response.json();
@@ -38,20 +42,21 @@ export function PostsDisplay({ postsList, setPostsList, specificCommunity }) {
           ...prevPosts,
           [post_id]: {
             ...prevPosts[post_id],
-            upvotes: data.upvotes,  // the updated voptes from backend
+            upvotes: data.upvotes, // the updated voptes from backend
             downvotes: data.downvotes,
           },
         }));
       }
     }
-
   }
-
 
   return (
     <div>
       {specificCommunity && Object.keys(postsList).length > 0 && (
-        <p>{postsList[Object.keys(postsList)[0]].community_name}</p>
+        <div>
+          <p>{postsList[Object.keys(postsList)[0]].community_name}</p>
+          <p>{dayjs(postsList[Object.keys(postsList)[0]].community_date_added).fromNow()}</p>
+        </div>
       )}
 
       <Box
@@ -208,6 +213,8 @@ export function PostsDisplay({ postsList, setPostsList, specificCommunity }) {
                 >
                   Comments
                 </Button>
+
+                {dayjs(post.date_added).fromNow()}
               </Box>
             </Box>
           );
