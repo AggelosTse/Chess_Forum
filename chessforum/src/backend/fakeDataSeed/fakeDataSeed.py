@@ -1,8 +1,7 @@
 import sys,os
-from flask import Flask
 from faker import Faker
 import random
-from server import app
+from backend.routes.initializations import app
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
