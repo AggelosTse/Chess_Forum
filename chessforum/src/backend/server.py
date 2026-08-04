@@ -700,9 +700,20 @@ def handleGetComments():
     try:
 
         post_id = request.args.get("post_id")
+        commentFilter = request.args.get("commentFilter")
 
-        #get all comments that are in this specific post
-        comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
+        if commentFilter == "NoFilter":
+
+            #get all comments that are in this specific post without 
+            comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id)).scalars().all()
+
+        elif commentFilter == "Newest":
+
+            comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id).order_by(Comments.date_added.desc())).scalars().all()
+
+        elif commentFilter == "MostLikes":
+
+            comments = db.session.execute(db.select(Comments).filter_by(post_id=post_id).order_by(Comments.upvotes.desc())).scalars().all()
 
         if comments is not None:
 
