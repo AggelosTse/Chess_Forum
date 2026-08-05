@@ -7,10 +7,18 @@ from routes.tokenDecorator import token_required
 @app.route("/getPostsData", methods=["GET"])
 def handle_postsData():
     try:
-        #grab posts from unique communities
-        feed_posts = db.session.execute(db.select(Posts)).scalars().all()
+
+        page = request.args.get("page")
+        limit = request.args.get("limit")
         
-        posts_dict = {}
+        page = int(page)
+        limit = int(limit)
+        offset = (page - 1) * limit #always start from the "offset" row in database
+
+        #grab posts from unique communities
+        feed_posts = db.session.execute(db.select(Posts).offset(offset).limit(limit)).scalars().all()
+        
+        posts_dict = []
         unique_communities = []
 
         #return all posts that have unique communities 
@@ -24,10 +32,11 @@ def handle_postsData():
                 userWhoPosted = post.users.username
 
                 #make the object to return
-                posts_dict[post.id] = {
+                posts_dict.append({
                     "title": post.title,
                     "image": post.image,
                     "user_id": post.user_id,
+                    "post_id": post.id,
                     "userWhoPosted" : userWhoPosted,
                     "community_id": post.subchessit_id,
                     "community_name": community_name,  #keep community name to display in frontend
@@ -35,7 +44,7 @@ def handle_postsData():
                     "upvotes" : post.upvotes,   #total upvotes and downvotes
                     "downvotes" : post.downvotes,
                     "date_added" : post.date_added
-                }
+                })
            
         
         return jsonify(posts_dict),200
@@ -90,11 +99,18 @@ def handle_specificPost():
             }),500
     
 @app.route("/getSpecificCommunityPosts", methods=["GET"])
-def handleGetCommunity():
-
-    community_id = request.args.get("community_id")
-
+def handleGetCommunityPosts():
     try:
+        community_id = request.args.get("community_id")
+        page = request.args.get("page")
+        limit = request.args.get("limit")
+
+        page = int(page)
+        limit = int(limit)
+
+        print(page,limit,community_id)
+        offset = (page - 1) * limit #always start from the "offset" row in database
+
         #grab current community 
         current_community= db.session.get(Subchessits, community_id)
 
@@ -110,19 +126,19 @@ def handleGetCommunity():
         #grab the date the community was added
         community_date_added = current_community.date_added
         
-        #grab all posts from the selected community via "posts" relationship object
-        community_posts = current_community.posts
+        community_posts = db.session.execute(db.select(Posts).filter_by(subchessit_id=community_id).offset(offset).limit(limit)).scalars().all()
         
-        posts_dict = {}
+        posts_dict = []
         for community_post in community_posts:
 
             userWhoPosted = community_post.users.username #using the "users" relationship object
 
             #make the object to return
-            posts_dict[community_post.id] = {
+            posts_dict.append({
                 "title": community_post.title,
                 "image": community_post.image,
                 "user_id": community_post.user_id,
+                "post_id" : community_post.id,
                 "userWhoPosted" : userWhoPosted,
                 "community_name": community_name,  #keep community name to display in frontend
                 "community_id" : community_post.subchessit_id,
@@ -132,7 +148,7 @@ def handleGetCommunity():
                 "date_added" : community_post.date_added, #every post date added
                 "community_date_added" : community_date_added    #community date added
 
-            }
+            })
         
         return jsonify(posts_dict),200
 

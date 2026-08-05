@@ -1,12 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { PostsDisplay } from "../components/postsDisplay.jsx";
+import { useCallback } from "react";
 
 export function LandingPage() {
-  const [postsList, setPostsList] = useState({});
+  const [postsList, setPostsList] = useState([]);
 
-  useEffect(() => {
-    async function fetchPosts() {
-      const response = await fetch("http://localhost:8001/getPostsData", {
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+
+  const limit = 10;
+
+  async function fetchPosts(pageNum) {
+
+    try {
+
+      if (fetchingRef.current || !hasMoreRef.current) return;
+
+      fetchingRef.current = true;
+      setLoading(true);
+
+      const response = await fetch(`http://localhost:8001/getPostsData?page=${pageNum}&limit=${limit}`, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -16,10 +33,68 @@ export function LandingPage() {
 
       const data = await response.json();
 
-      setPostsList(data);
+      if (response.ok && Array.isArray(data)) {
+        if (data.length === 0) {
+          hasMoreRef.current = false; 
+          setHasMore(false);
+          return;
+        }
+        else {
+          setPostsList((prevPosts) => {
+            //filter out posts that are already present in prevPosts
+            const existingIds = new Set(prevPosts.map((p) => p.id || p.post_id));
+            const newPosts = data.filter((p) => !existingIds.has(p.id || p.post_id));
+
+            return [...prevPosts, ...newPosts];
+          });
+        }
+      }
+    } catch (error) {
+
+    } finally {
+      setLoading(false);
+      if (hasMoreRef.current) {
+        fetchingRef.current = false;
+      }
     }
-    fetchPosts();
+
+  }
+  useEffect(() => {
+    function handleScroll() {
+      // Hard exit if already fetching or if out of posts
+      if (fetchingRef.current || !hasMoreRef.current) return;
+
+      const windowHeight = window.innerHeight;
+      const scrollTop = document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+
+      // Trigger 150px before reaching absolute bottom
+      if (windowHeight + scrollTop >= scrollHeight - 150) {
+        setPage((prev) => prev + 1);
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return <PostsDisplay postsList={postsList} setPostsList={setPostsList} specificCommunity={false} />;
+
+  useEffect(() => {
+    if (hasMoreRef.current) {
+      fetchPosts(page);
+
+    }
+  }, [page]);
+
+
+  return (
+    <div>
+      <PostsDisplay postsList={postsList} setPostsList={setPostsList} specificCommunity={false} />
+      
+      <div style={{ minHeight: "60px", textAlign: "center", padding: "10px" }}>
+        {loading && <p>Loading...</p>}
+        {!hasMore && <p>No more Posts Exist</p>}
+      </div>
+    </div>
+  );
 }
